@@ -181,7 +181,7 @@ The checklists used are [ETSI EN 303 645](https://www.etsi.org/deliver/etsi_en/3
 
 | ID | Requirement |
 |---|---|
-| PRIV-1 | Audio **MUST NOT** leave the robot outside a turn (§6.2). The face, or a light, **MUST** show when the robot listens, and a mute control **MUST** cut the microphones. |
+| PRIV-1 | Audio **MUST NOT** leave a device outside a conversation: one its user opens (a wake word, a touch), or one the cloud opens within the privacy class the owner allows (SEC-8, SEC-9). The face, or a light, **MUST** show while the device listens, and a mute control **MUST** cut the microphones. |
 | PRIV-2 | Images **MUST** leave the robot only as the result of a call the owner allowed (SEC-8, SEC-9), with an on-screen indicator while the camera is used for the cloud. |
 | PRIV-3 | The robot **SHOULD** send conclusions rather than raw data: "a person is in front of me", not a video stream. |
 | PRIV-4 | The owner **MUST** be able to see and delete what the cloud keeps about them and the robot (conversations, recordings, images); the server sets and states how long it keeps them (ETSI 5.11, 6-1, 6-6). |

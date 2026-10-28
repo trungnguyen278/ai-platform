@@ -13,6 +13,7 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0003](0003-compatibility.md) | Compatibility: every device in the field keeps working | Proposed | 2026-10-28 |
 | [0004](0004-conventions.md) | Conventions: one way to write identifiers, time, errors and APIs | Proposed | 2026-10-28 |
 | [0005](0005-homes.md) | Homes: a device belongs to a home, and people are its members | Proposed | 2026-10-28 |
+| [0006](0006-two-channels.md) | The cloud link in two channels: control always on, media only to talk | Proposed | 2026-10-28 |
 
 ## Earlier decisions, in ai-robot
 
