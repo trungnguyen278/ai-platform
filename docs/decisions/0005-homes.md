@@ -1,6 +1,6 @@
 # 0005 — Homes: a device belongs to a home, and people are its members
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-28
 - **Revised:** 2026-10-28: the challenge that a device signs at set-up carries the home, as set-up 2.0 specifies.
 

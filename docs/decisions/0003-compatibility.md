@@ -1,6 +1,6 @@
 # 0003 — Compatibility: every device in the field keeps working
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-28
 
 ## Context

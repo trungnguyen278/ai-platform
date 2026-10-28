@@ -1,6 +1,6 @@
 # 0004 — Conventions: one way to write identifiers, time, errors and APIs
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-28
 
 ## Context
