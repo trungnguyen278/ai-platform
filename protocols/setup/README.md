@@ -1,14 +1,14 @@
 # Set-up — the app ⇄ the robot, over Bluetooth LE
 
-How the owner's app sets up a robot: its Wi-Fi network, and its registration with the owner's account on `ai-robot-server`.
-- On the robot (`software/`), it is the `setup` module, with its `setup_link` and `network` ports.
-- The app (`ai-robot-app`) does not exist yet.
+How the owner's app sets up a robot: its Wi-Fi network, and its registration with the owner's account on `ai-cloud`.
+- On the robot (ai-robot's `software/`), it is the `setup` module, with its `setup_link` and `network` ports.
+- The app (`ai-app`) does not exist yet.
 
 Version **1.0**:
-- It follows [ADR-0015](../../docs/decisions/0015-set-up.md), proposed, and registers the key of [ADR-0010](../../docs/decisions/0010-device-identity.md).
+- It follows [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), proposed, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md).
 - It meets the [requirements](../cloud/requirements.md) on set-up and ownership (PROV-1 to PROV-4), and SEC-3, SEC-5 and SEC-16.
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12.
-- [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys. The robot's tests check it against the schema, and replay it (`software/tests/test_setup_protocol.py`).
+- [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys. The robot's tests check it against the schema, and replay it (ai-robot's `software/tests/test_setup_protocol.py`).
 
 > **Implemented by the robot so far:** everything below. The `setup` module holds set-up, with BlueZ for Bluetooth LE and NetworkManager for the Wi-Fi; the `cloud` module signs the registration with the robot's key, and keeps its binding. The app does not exist yet, nor the server's side of the registration.
 
@@ -28,8 +28,8 @@ advertises the set-up service
           <────────────── confirm ─────────────────────
                      from here on, everything is encrypted
           <────────────── info, networks, join ────────
-          <────────────── register: challenge, server ─    from ai-robot-server
-          ─────────────── registration (signed) ───────>   to ai-robot-server
+          <────────────── register: challenge, server ─    from ai-cloud
+          ─────────────── registration (signed) ───────>   to ai-cloud
           <────────────── finish ──────────────────────
 closes set-up, asks the server for its
 tokens: once they come, it is bound
@@ -47,7 +47,7 @@ The robot is open to set-up only on request, and for a limited time (SEC-16).
 | **A failed attempt** | A session that sent a `share` but did not confirm. The robot then shows a new code, with a new salt. |
 | **An idle session** | The robot ends a session that has sent nothing for `idle` seconds (120). |
 
-These durations and counts are the robot's settings, in `[modules.setup]` of `software/config/base.toml`; the values above are those shipped.
+These durations and counts are the robot's settings, in `[modules.setup]` of ai-robot's `software/config/base.toml`; the values above are those shipped.
 
 ## Finding the robot
 
@@ -166,7 +166,7 @@ An error is a message of type `error`, with `reply_to` when it answers a message
 
 ## The registration
 
-A JWT ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)), signed with ES256 by the robot's key, in its TPM ([ADR-0010](../../docs/decisions/0010-device-identity.md)).
+A JWT ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)), signed with ES256 by the robot's key, in its TPM ([ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md)).
 
 | Part | Content |
 |---|---|

@@ -1,7 +1,7 @@
-# Cloud link — robot ⇄ ai-robot-server
+# Cloud link — robot ⇄ ai-cloud
 
-The link between the robot software and `ai-robot-server`:
-- On the robot (`software/`), it is the `cloud` module and the `livekit` adapter of its `cloud` port.
+The link between the robot software and `ai-cloud`:
+- On the robot (ai-robot's `software/`), it is the `cloud` module and the `livekit` adapter of its `cloud` port.
 - The server, built anew, does not exist yet.
 
 The robot's core AI runs in the cloud. The robot captures, plays, shows and moves, and keeps everything safe. This link carries:
@@ -11,15 +11,15 @@ The robot's core AI runs in the cloud. The robot captures, plays, shows and move
 
 Version **2.2**:
 - It builds on three ADRs:
-  - [ADR-0009](../../docs/decisions/0009-cloud-link-webrtc.md): WebRTC through a LiveKit server;
-  - [ADR-0008](../../docs/decisions/0008-cloud-link-messages.md): typed JSON messages, and MCP for capabilities;
-  - [ADR-0010](../../docs/decisions/0010-device-identity.md): the robot's identity.
-- Version 2.2 has the cloud end the user's speech, the robot only falling back ([The end of speech](#turns)). Version 2.1 added the [token endpoint](#tokens-from-the-server). Version 1.0 carried everything over one WebSocket ([ADR-0007](../../docs/decisions/0007-cloud-link-transport.md), superseded); no server ever spoke it.
+  - [ADR-0009](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0009-cloud-link-webrtc.md): WebRTC through a LiveKit server;
+  - [ADR-0008](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0008-cloud-link-messages.md): typed JSON messages, and MCP for capabilities;
+  - [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md): the robot's identity.
+- Version 2.2 has the cloud end the user's speech, the robot only falling back ([The end of speech](#turns)). Version 2.1 added the [token endpoint](#tokens-from-the-server). Version 1.0 carried everything over one WebSocket ([ADR-0007](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0007-cloud-link-transport.md), superseded); no server ever spoke it.
 - It meets the [requirements](requirements.md), whose identifiers (SES-2, PRIV-1…) it cites.
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12.
-- [`examples/`](examples/) holds whole sessions. The robot's tests check them, and the robot's own messages, against the schema (`software/tests/test_cloud_protocol.py`, `test_cloud_session.py`).
+- [`examples/`](examples/) holds whole sessions. The robot's tests check them, and the robot's own messages, against the schema (ai-robot's `software/tests/test_cloud_protocol.py`, `test_cloud_session.py`).
 
-> **Implemented by the robot so far:** everything below. Its `voice` module holds the conversations, with a wake word and voice activity detection ([ADR-0013](../../docs/decisions/0013-listening-on-the-robot.md)). Its key is in its TPM (the `tpm` adapter of its `identity` port, ADR-0010), or in a file on a development computer.
+> **Implemented by the robot so far:** everything below. Its `voice` module holds the conversations, with a wake word and voice activity detection ([ADR-0013](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0013-listening-on-the-robot.md)). Its key is in its TPM (the `tpm` adapter of its `identity` port, ADR-0010), or in a file on a development computer.
 
 ## The room
 
@@ -30,7 +30,7 @@ The robot and the cloud meet in a LiveKit room, one for each robot. LiveKit carr
 | Participant | Who |
 |---|---|
 | The robot | Joins with the identity and the room its token names. |
-| The cloud | `ai-robot-server`'s agent: a participant of kind `agent`, which only the server's tokens can give. |
+| The cloud | `ai-cloud`'s agent: a participant of kind `agent`, which only the server's tokens can give. |
 | Later: the owner's app | For remote control and the camera, with permissions of its own. |
 
 - **The robot listens only to agents.** It takes messages and audio only from participants of kind `agent`; it ignores, and logs, the rest (SEC-7).
@@ -39,13 +39,13 @@ The robot and the cloud meet in a LiveKit room, one for each robot. LiveKit carr
 
 ## Joining
 
-To join its room, the robot needs the LiveKit server's address and a token: a JWT that names the room and the robot's identity, and lets it publish its microphone and send data. It gets both from `ai-robot-server`, or makes the token itself for a development server.
+To join its room, the robot needs the LiveKit server's address and a token: a JWT that names the room and the robot's identity, and lets it publish its microphone and send data. It gets both from `ai-cloud`, or makes the token itself for a development server.
 
 **Addresses.** `https://` and `wss://` use TLS, with the server's certificate checked against the system's trusted authorities. `http://` and `ws://` are accepted only to the robot itself (`127.0.0.1`, `::1`, `localhost`), for development (SEC-1).
 
 ### Tokens from the server
 
-A robot that its owner has set up has an identifier, and a key pair whose public half `ai-robot-server` knows ([ADR-0010](../../docs/decisions/0010-device-identity.md)): the owner registers it at set-up ([the set-up protocol](../setup/README.md#the-registration)). Before each join, it asks the server's token endpoint, `/robot/token`, for tokens. It proves who it is with an assertion signed by its key: OAuth 2.0 client authentication with a JWT ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), §2.2).
+A robot that its owner has set up has an identifier, and a key pair whose public half `ai-cloud` knows ([ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md)): the owner registers it at set-up ([the set-up protocol](../setup/README.md#the-registration)). Before each join, it asks the server's token endpoint, `/robot/token`, for tokens. It proves who it is with an assertion signed by its key: OAuth 2.0 client authentication with a JWT ([RFC 7523](https://www.rfc-editor.org/rfc/rfc7523), §2.2).
 
 ```http
 POST /robot/token HTTP/1.1
@@ -97,7 +97,7 @@ Against a development LiveKit server, the robot makes its own token with that se
 - When it cannot, the robot joins again after a random wait, from 0 to `min(reconnect_max, reconnect_first × 2ⁿ)`, where n counts the failed attempts in a row. That is 1 s at first, then 2 s, and so on up to 60 s, as shipped: exponential backoff with full jitter (SES-4).
 - A join that reaches the `hello` exchange resets n. Each join opens a new session.
 
-**The robot's settings.** The robot's timings and rates in this document are settings, in `[ports.cloud.livekit]` of `software/config/base.toml`, and the values given here are those shipped. There, `tokens` chooses where the robot gets its tokens, `server` or `development`, and `url` is the server's address or the development LiveKit server's. Set-up may register the robot with another server, which the robot then uses in place of `url`. The sizes, the names, the paths and the versions are the protocol's own.
+**The robot's settings.** The robot's timings and rates in this document are settings, in `[ports.cloud.livekit]` of ai-robot's `software/config/base.toml`, and the values given here are those shipped. There, `tokens` chooses where the robot gets its tokens, `server` or `development`, and `url` is the server's address or the development LiveKit server's. Set-up may register the robot with another server, which the robot then uses in place of `url`. The sizes, the names, the paths and the versions are the protocol's own.
 
 ## Messages
 
@@ -240,7 +240,7 @@ The robot's capabilities today:
 | `screen.set_mood` | informational | Sets a lasting mood, shown when nothing more important is on the face, or clears it |
 | `screen.show_scene` | informational | Shows a scene (clock, timer, weather…) with its data while the face watches from a corner, or removes it |
 
-Their schemas come from the screen protocol's [vocabulary](../screen/vocabulary.json), and `tools/list` gives them in full. A new capability needs no change here: its owning module offers it, and the catalogue grows.
+Their schemas come from the screen protocol's [vocabulary](https://github.com/trungnguyen278/ai-robot/blob/main/protocol/screen/vocabulary.json), and `tools/list` gives them in full. A new capability needs no change here: its owning module offers it, and the catalogue grows.
 
 ## Events
 
@@ -286,7 +286,7 @@ sequenceDiagram
   - `trigger` is `wake_word`, `tap`, `button`, `follow_up` or `barge_in`.
   - `context` is a snapshot of the robot's situation (IO-4): `battery` (percent) and `charging`, each `null` when unknown. Later minor versions may add fields.
 - **Speech.** The robot feeds the user's speech to its `speech` track from `turn.start` until the speech ends.
-- **The end of speech.** Either side may decide that the user has finished, and says so with `turn.speech_end`. Once either side has sent it, the robot stops feeding the track ([ADR-0012](../../docs/decisions/0012-end-of-speech.md)).
+- **The end of speech.** Either side may decide that the user has finished, and says so with `turn.speech_end`. Once either side has sent it, the robot stops feeding the track ([ADR-0012](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0012-end-of-speech.md)).
   - **The cloud** decides, with its own detection, which may use what was said, and sends `{"turn": "t1"}`.
   - **The robot** decides only as a fallback, when the cloud has not: after a silence of a few seconds, which the robot sets, or after 30 s of speech. Its `turn.speech_end` says how much speech it sent, so that the cloud knows when it has all of it: the message and the audio travel apart.
     ```json
@@ -335,5 +335,5 @@ A message about a turn or a response that has ended is ignored, not refused: it 
 - **No version change.** A new capability or event needs no protocol change: the robot's catalogue and `hello` carry them.
 - **Minor version.** A new message type, or a new optional field, raises the minor version. Update this file, `schema.json` and the examples, then the robot, in the same pull request.
 - **Major version.** Changing or removing anything a side relies on raises the major version, and the server supports the previous major version for a while (REL-5).
-- **Where the version lives.** It appears here, in `schema.json` (`title`), and as `PROTOCOL` in `software/src/ai_robot/adapters/livekit/session.py`.
+- **Where the version lives.** It appears here, in `schema.json` (`title`), and as `PROTOCOL` in ai-robot's `software/src/ai_robot/adapters/livekit/session.py`.
 - **MCP.** The MCP revision is pinned and changes deliberately (ADR-0008). `server/discover` lets the robot support two revisions during a change.

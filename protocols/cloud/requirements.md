@@ -1,30 +1,30 @@
 # Robot ⇄ cloud: requirements
 
-> **Status:** draft for discussion, 2026-10-16. It states what the link between the robot and `ai-robot-server` must do. How it does so is decided later, in the ADRs listed in [§13](#13-decisions-to-make); until they are agreed, every design hint below is a proposal.
+> **Status:** draft for discussion, 2026-10-16. It states what the link between the robot and `ai-cloud` must do. How it does so is decided later, in the ADRs listed in [§13](#13-decisions-to-make); until they are agreed, every design hint below is a proposal.
 
 Requirement levels follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119): **MUST**, **SHOULD**, **MAY**. Each requirement has an identifier (`IO-3`, `SEC-7`…) so that designs, tests and reviews can refer to it.
 
 ## 1. Purpose and scope
 
-The robot's core AI runs in the cloud, in `ai-robot-server`: understanding speech, deciding what to say and do, the voice, and probably moods such as sleepiness. That server will be built anew, like the robot: the previous generation's server (`Luni_Cloud`) is a reference, not a starting point. The robot (the Pi 5 software in `software/`) captures, plays, shows and moves, and keeps everything safe. This document covers the link between the two:
+The robot's core AI runs in the cloud, in `ai-cloud`: understanding speech, deciding what to say and do, the voice, and probably moods such as sleepiness. That server will be built anew, like the robot: the previous generation's server (`Luni_Cloud`) is a reference, not a starting point. The robot (the Pi 5 software in ai-robot's `software/`) captures, plays, shows and moves, and keeps everything safe. This document covers the link between the two:
 
 - what goes up and what comes down;
 - how a conversation flows, including interruptions;
 - **how the cloud can control more and more of the robot without the protocol changing** (§5);
 - security, privacy, reliability, performance, provisioning, updates and testing.
 
-Out of scope here: the Pi ⇄ body link ([`protocol/body/`](../body/README.md)), the software ⇄ screen link ([`protocol/screen/`](../screen/README.md)), and the app ⇄ cloud interface. Bluetooth set-up is covered only where it touches the cloud (§10).
+Out of scope here: the Pi ⇄ body link ([`protocol/body/`](https://github.com/trungnguyen278/ai-robot/blob/main/protocol/body/README.md)), the software ⇄ screen link ([`protocol/screen/`](https://github.com/trungnguyen278/ai-robot/blob/main/protocol/screen/README.md)), and the app ⇄ cloud interface. Bluetooth set-up is covered only where it touches the cloud (§10).
 
 ## 2. Context and principles
 
 ```text
- ┌──────────── robot (Raspberry Pi 5) ────────────┐            ┌──── ai-robot-server ────┐
+ ┌──────────── robot (Raspberry Pi 5) ────────────┐            ┌─────── ai-cloud ────────┐
  │ modules ── bus ── cloud link ── TLS, outbound ─┼───────────▶│ gateway · AI pipeline   │
  │   screen, voice, motion, vision, system…       │◀───────────┼ device registry ·       │
  │   each declares the capabilities it offers     │            │ updates                 │
  └──────────────────────┬─────────────────────────┘            └────────────▲────────────┘
                         │ body link (never reaches the cloud)               │ account,
-                  body controller                                       ai-robot-app
+                  body controller                                       ai-app
 ```
 
 1. **The cloud decides what to say and do; the robot decides whether it is safe and how to do it.** Safety (motion limits, the emergency stop, the body controller's heartbeat) never depends on the cloud.
@@ -32,7 +32,7 @@ Out of scope here: the Pi ⇄ body link ([`protocol/body/`](../body/README.md)),
 3. **Everything the robot can do for the cloud is a declared capability.** A new capability needs no change to the protocol, and the cloud can do nothing the robot has not declared (§5).
 4. **Nothing leaves the robot without a reason people can see:** a wake word, a tap, an on-screen indicator.
 5. **Least privilege, defence in depth:** each layer checks what it receives, even from the other side.
-6. **One source of truth:** the protocol is defined here, in `protocol/cloud/`, and both `software/` and `ai-robot-server` test against it.
+6. **One source of truth:** the protocol is defined here, in `protocols/cloud/`, and both ai-robot's `software/` and `ai-cloud` test against it.
 
 What the previous generation did, kept as a reference: one WebSocket per device, `auth` with a provisioned device token and the MAC address, Opus 16 kHz mono in 60 ms frames, JSON control messages (`set_emotion`, `set_scene`, `sync_data`, `ota_available` with `sha256`), a 30 s heartbeat, and re-pairing over Bluetooth after an authentication failure ([Luni_Robot network notes](https://github.com/trungnguyen278/Luni_Robot/blob/main/docs/modules/network.md)). Its fixed list of commands is what §5 replaces.
 
@@ -77,7 +77,7 @@ The cloud will learn to do more over time: new expressions and scenes, gestures,
 | EXT-9 | On the robot, capabilities **MUST** be registered by the module that owns them and turned into bus messages. For example, `screen.show_expression` becomes an `ExpressionRequest` from a `cloud.*` source, at a priority the robot chooses. A new robot feature then adds a capability in its own module, with no change to the cloud link. |
 | EXT-10 | The cloud **SHOULD** be able to hand the catalogue to its language model as tool definitions unchanged: name, description and input schema. |
 
-Proposed shape (decision 2 in §13, [ADR-0008](../../docs/decisions/0008-cloud-link-messages.md)): the tools of the [Model Context Protocol](https://modelcontextprotocol.io/specification/2026-07-28/server/tools), in JSON-RPC 2.0 messages: `tools/list`, `tools/call` with `inputSchema`/`outputSchema`, results with `isError`, and `notifications/tools/list_changed`. That is the format language models already use for tools, and the open-source xiaozhi-esp32 devices use MCP over their WebSocket for exactly this kind of control ([xiaozhi protocol](https://github.com/78/xiaozhi-esp32/blob/main/docs/websocket.md)). In MCP terms the robot is the server that offers tools, and the cloud is the client that calls them.
+Proposed shape (decision 2 in §13, [ADR-0008](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0008-cloud-link-messages.md)): the tools of the [Model Context Protocol](https://modelcontextprotocol.io/specification/2026-07-28/server/tools), in JSON-RPC 2.0 messages: `tools/list`, `tools/call` with `inputSchema`/`outputSchema`, results with `isError`, and `notifications/tools/list_changed`. That is the format language models already use for tools, and the open-source xiaozhi-esp32 devices use MCP over their WebSocket for exactly this kind of control ([xiaozhi protocol](https://github.com/78/xiaozhi-esp32/blob/main/docs/websocket.md)). In MCP terms the robot is the server that offers tools, and the cloud is the client that calls them.
 
 ## 6. Sessions and conversations
 
@@ -220,14 +220,14 @@ Each becomes an ADR, `Proposed` until agreed.
 
 | # | Decision | Options | Leaning |
 |---|---|---|---|
-| 1 | Transport | WebSocket over TLS, carrying JSON and binary audio frames (the previous generation, xiaozhi, the OpenAI and Gemini realtime APIs). WebRTC (built for lossy networks, more complex). MQTT plus UDP audio. | Decided: WebRTC through a LiveKit server, for the audio and the messages ([ADR-0009](../../docs/decisions/0009-cloud-link-webrtc.md), superseding [ADR-0007](../../docs/decisions/0007-cloud-link-transport.md)) |
-| 2 | Message format | JSON-RPC 2.0 with MCP-shaped capabilities (§5). A protocol of our own. | MCP for capabilities, standard and what language models already consume, inside the link's own JSON messages: [ADR-0008](../../docs/decisions/0008-cloud-link-messages.md) |
-| 3 | Audio formats offered, and the baseline (§6.3) | Opus at 16 or 24 kHz, 20 or 60 ms frames, at several bit rates; 16-bit PCM at 16 kHz | Decided: Opus, negotiated by SDP, which every WebRTC endpoint supports ([ADR-0009](../../docs/decisions/0009-cloud-link-webrtc.md)) |
-| 4 | End of speech | On the robot (voice activity detection), the cloud confirming. In the cloud only. | Proposed: the cloud ends the user's speech, and the robot only falls back, after a long silence or 30 s ([ADR-0012](../../docs/decisions/0012-end-of-speech.md)) |
-| 5 | Device identity and credentials | A client certificate (mutual TLS). Short-lived tokens signed with the device's key. A long-lived token from set-up (the previous generation). | Decided: a key pair in a TPM on the robot, registered at set-up; short-lived tokens in exchange for signed assertions ([ADR-0010](../../docs/decisions/0010-device-identity.md)) |
-| 6 | Updates | Debian packages, an image with two slots, or a container | Proposed: whole signed images in two slots, installed by RAUC ([ADR-0014](../../docs/decisions/0014-updates.md)) |
+| 1 | Transport | WebSocket over TLS, carrying JSON and binary audio frames (the previous generation, xiaozhi, the OpenAI and Gemini realtime APIs). WebRTC (built for lossy networks, more complex). MQTT plus UDP audio. | Decided: WebRTC through a LiveKit server, for the audio and the messages ([ADR-0009](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0009-cloud-link-webrtc.md), superseding [ADR-0007](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0007-cloud-link-transport.md)) |
+| 2 | Message format | JSON-RPC 2.0 with MCP-shaped capabilities (§5). A protocol of our own. | MCP for capabilities, standard and what language models already consume, inside the link's own JSON messages: [ADR-0008](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0008-cloud-link-messages.md) |
+| 3 | Audio formats offered, and the baseline (§6.3) | Opus at 16 or 24 kHz, 20 or 60 ms frames, at several bit rates; 16-bit PCM at 16 kHz | Decided: Opus, negotiated by SDP, which every WebRTC endpoint supports ([ADR-0009](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0009-cloud-link-webrtc.md)) |
+| 4 | End of speech | On the robot (voice activity detection), the cloud confirming. In the cloud only. | Proposed: the cloud ends the user's speech, and the robot only falls back, after a long silence or 30 s ([ADR-0012](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0012-end-of-speech.md)) |
+| 5 | Device identity and credentials | A client certificate (mutual TLS). Short-lived tokens signed with the device's key. A long-lived token from set-up (the previous generation). | Decided: a key pair in a TPM on the robot, registered at set-up; short-lived tokens in exchange for signed assertions ([ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md)) |
+| 6 | Updates | Debian packages, an image with two slots, or a container | Proposed: whole signed images in two slots, installed by RAUC ([ADR-0014](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0014-updates.md)) |
 | 7 | Where moods live | In the cloud, sending expression requests, as now planned. On the robot. | In the cloud. The robot's `behavior` module keeps only local reactions (taps, offline) |
-| 8 | Set-up (§10) | The app over Bluetooth LE, secured by a code on the robot's screen (a PAKE). Bluetooth's own pairing. A Wi-Fi access point on the robot. The device authorization grant. | Proposed: the app over Bluetooth LE, with SPAKE2+ on a code shown on the robot's screen; the robot signs its registration, which the app relays ([ADR-0015](../../docs/decisions/0015-set-up.md)) |
+| 8 | Set-up (§10) | The app over Bluetooth LE, secured by a code on the robot's screen (a PAKE). Bluetooth's own pairing. A Wi-Fi access point on the robot. The device authorization grant. | Proposed: the app over Bluetooth LE, with SPAKE2+ on a code shown on the robot's screen; the robot signs its registration, which the app relays ([ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md)) |
 
 ## References
 
@@ -235,7 +235,7 @@ Retrieved 2026-10-16:
 
 - Previous generation: [Luni_Robot network notes](https://github.com/trungnguyen278/Luni_Robot/blob/main/docs/modules/network.md).
 - [xiaozhi-esp32 WebSocket protocol](https://github.com/78/xiaozhi-esp32/blob/main/docs/websocket.md): hello with audio parameters (Opus 16 kHz, 60 ms frames), bearer token, `listen`/`tts`/`llm` emotion messages, MCP for device control.
-- [Model Context Protocol, tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) (revision 2026-07-28, the latest; [ADR-0008](../../docs/decisions/0008-cloud-link-messages.md) summarises what it changed): `tools/list`, `tools/call`, schemas, errors, security considerations.
+- [Model Context Protocol, tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) (revision 2026-07-28, the latest; [ADR-0008](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0008-cloud-link-messages.md) summarises what it changed): `tools/list`, `tools/call`, schemas, errors, security considerations.
 - [Gemini Live API, session management](https://ai.google.dev/gemini-api/docs/live-session): connections of about 10 minutes inside resumable sessions.
 - [OpenAI Realtime API reference](https://developers.openai.com/api/reference/resources/realtime): audio buffers (`input_audio_buffer.append`), speech detected by the server (`input_audio_buffer.speech_started`), and dropping the audio the user did not hear (`conversation.item.truncate`).
 - Alexa Voice Service, [context](https://web.archive.org/web/20240612194441/https://www.developer.amazon.com/en-US/docs/alexa/alexa-voice-service/context.html) and [API overview](https://web.archive.org/web/20240520071257/https://www.developer.amazon.com/en-US/docs/alexa/alexa-voice-service/api-overview.html), archived copies from 2024, since the pages are offline: interfaces made of directives and events, the interfaces and versions each device reports, context with each event.
