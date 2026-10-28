@@ -1,6 +1,6 @@
 # 0001 — Repositories: a family of AI products, sharing one platform
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-28
 - **Supersedes:** [ai-robot ADR-0003](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0003-neutral-repo-naming.md)'s names; its rule against product names in identifiers stays.
 

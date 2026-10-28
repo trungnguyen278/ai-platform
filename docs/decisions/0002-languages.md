@@ -1,6 +1,6 @@
 # 0002 — Languages: Vietnamese first, any language added as data
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-28
 
 ## Context

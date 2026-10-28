@@ -1,6 +1,6 @@
 # ai-platform
 
-What the project's AI products share: the protocols between them, and the decisions that span them ([ADR-0001](docs/decisions/0001-repositories.md), proposed). Every repository of the project pins this one, so that each of them reads the same definitions.
+What the project's AI products share: the protocols between them, and the decisions that span them ([ADR-0001](docs/decisions/0001-repositories.md)). Every repository of the project pins this one, so that each of them reads the same definitions.
 
 | Repository | What it is |
 |---|---|

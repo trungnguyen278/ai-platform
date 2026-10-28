@@ -8,8 +8,8 @@ Each significant decision is a short file: context, decision, alternatives consi
 
 | # | Decision | Status | Date |
 |---|---|---|---|
-| [0001](0001-repositories.md) | Repositories: a family of AI products, sharing one platform | Proposed | 2026-10-28 |
-| [0002](0002-languages.md) | Languages: Vietnamese first, any language added as data | Proposed | 2026-10-28 |
+| [0001](0001-repositories.md) | Repositories: a family of AI products, sharing one platform | Accepted | 2026-10-28 |
+| [0002](0002-languages.md) | Languages: Vietnamese first, any language added as data | Accepted | 2026-10-28 |
 
 ## Earlier decisions, in ai-robot
 
