@@ -1,0 +1,69 @@
+{
+  "description": "A conversation the user opens with the wake word: the room, a turn answered with an expression, a second turn whose answer the user speaks over, a turn dropped as noise, and the end after a silence. The agent's messages, and the device's in the room, travel in the room; the others on the control channel. An audio step tells what happens in the room at that point; it is not a message.",
+  "messages": [
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.0",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:20:00.250Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi", "en"], "allowed_classes": ["informational", "privacy"],
+      "conversations": true, "media": ["livekit"], "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.0", "session": "01a18085-942c-78a0-9282-31c8cede2442",
+      "resumed": false, "time": "2026-10-28T03:20:00.310Z", "ping_interval": 20,
+      "conversations": true, "events": []
+    }},
+    {"from": "device", "message": {
+      "type": "conversation.request", "seq": 1, "conversation": "01a18086-9160-765a-a90f-9dd0604d45f2",
+      "trigger": "wake_word", "context": {"battery": 82.0, "charging": false}
+    }},
+    {"from": "cloud", "message": {
+      "type": "conversation.start", "seq": 1, "reply_to": 1, "conversation": "01a18086-9160-765a-a90f-9dd0604d45f2",
+      "listen": true, "media": {"livekit": {"url": "wss://media.cloud.example", "token": "eyJhbGciOiJIUzI1NiIs..."}}
+    }},
+    {"from": "device", "audio": "The device joins the room and publishes its microphone; the agent joins, and subscribes to it"},
+    {"from": "device", "audio": "What the device heard since the wake word, 1.2 s, as pre-connect audio; then its microphone, live"},
+    {"from": "agent", "message": {"type": "turn.start", "turn": "01a18086-9854-7225-8534-4e2bfd22bb42"}},
+    {"from": "agent", "message": {"type": "turn.speech_end", "turn": "01a18086-9854-7225-8534-4e2bfd22bb42"}},
+    {"from": "agent", "message": {
+      "type": "response.start", "response": "01a18086-9e30-7762-bf95-422201f282cb",
+      "turn": "01a18086-9854-7225-8534-4e2bfd22bb42", "language": "en"
+    }},
+    {"from": "agent", "message": {"type": "response.text", "response": "01a18086-9e30-7762-bf95-422201f282cb", "delta": "It is sunny in Hanoi, "}},
+    {"from": "agent", "audio": "The answer's voice, on the agent's track, as it is spoken"},
+    {"from": "cloud", "message": {
+      "type": "mcp", "seq": 2,
+      "payload": {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {
+        "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
+        "name": "screen.show_expression", "arguments": {"expression": "happy"}
+      }}
+    }},
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 2, "reply_to": 2,
+      "payload": {"jsonrpc": "2.0", "id": 1, "result": {
+        "resultType": "complete",
+        "content": [{"type": "text", "text": "{\"showing\": \"happy\"}"}],
+        "structuredContent": {"showing": "happy"},
+        "isError": false
+      }}
+    }},
+    {"from": "agent", "message": {"type": "response.text", "response": "01a18086-9e30-7762-bf95-422201f282cb", "delta": "28 degrees."}},
+    {"from": "agent", "message": {"type": "response.end", "response": "01a18086-9e30-7762-bf95-422201f282cb"}},
+    {"from": "agent", "message": {"type": "turn.start", "turn": "01a18086-b8c0-785b-bbac-725ffe1932a2"}},
+    {"from": "agent", "message": {"type": "turn.speech_end", "turn": "01a18086-b8c0-785b-bbac-725ffe1932a2"}},
+    {"from": "agent", "message": {
+      "type": "response.start", "response": "01a18086-bfc8-73e1-84a6-37ac069e277d",
+      "turn": "01a18086-b8c0-785b-bbac-725ffe1932a2", "language": "en"
+    }},
+    {"from": "agent", "message": {"type": "response.text", "response": "01a18086-bfc8-73e1-84a6-37ac069e277d", "delta": "Tomorrow it may rain in the afternoon, so "}},
+    {"from": "agent", "audio": "The answer's voice, until the user speaks over it"},
+    {"from": "device_in_room", "message": {"type": "response.interrupted", "response": "01a18086-bfc8-73e1-84a6-37ac069e277d"}},
+    {"from": "agent", "message": {"type": "turn.start", "turn": "01a18086-c8c4-7fff-ba25-77a828ef45e0"}},
+    {"from": "agent", "message": {"type": "turn.cancel", "turn": "01a18086-c8c4-7fff-ba25-77a828ef45e0", "reason": "noise"}},
+    {"from": "device", "audio": "Nobody speaks for 10 s"},
+    {"from": "device", "message": {
+      "type": "conversation.end", "seq": 3, "conversation": "01a18086-9160-765a-a90f-9dd0604d45f2", "reason": "idle"
+    }},
+    {"from": "device", "audio": "The device and the agent leave the room"}
+  ]
+}

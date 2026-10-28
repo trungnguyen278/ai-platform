@@ -1,6 +1,8 @@
-# Robot ⇄ cloud: requirements
+# Device ⇄ cloud: requirements
 
 > **Status:** draft for discussion, 2026-10-16. It states what the link between the robot and `ai-cloud` must do. How it does so is decided later, in the ADRs listed in [§13](#13-decisions-to-make); until they are agreed, every design hint below is a proposal.
+>
+> It was written when the robot was the only device. What it asks of the robot, it asks of every device of the project ([ADR-0001](../../docs/decisions/0001-repositories.md), decision 5).
 
 Requirement levels follow [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119): **MUST**, **SHOULD**, **MAY**. Each requirement has an identifier (`IO-3`, `SEC-7`…) so that designs, tests and reviews can refer to it.
 
@@ -41,7 +43,7 @@ What the previous generation did, kept as a reference: one WebSocket per device,
 | ID | Data | When | Notes |
 |---|---|---|---|
 | IO-1 | **Hello**: device identifier, protocol version, software version, locale, time zone, the media formats it offers (§6.3); then the capability catalogue (§5) | At the start of every session | No personal data beyond what identifies the device |
-| IO-2 | **User speech**, as compressed audio | Only during a turn (§6): after the wake word, a tap or an expected follow-up | Never before the trigger (PRIV-1) |
+| IO-2 | **User speech**, as compressed audio | Only during a conversation: one opened by the wake word or a touch, or by the cloud within the privacy class the owner allows | Never before the trigger (PRIV-1) |
 | IO-3 | **Turn events**: turn started (with the trigger), end of speech, cancelled, barge-in (the user interrupted, with how much of the answer had been played) | As they happen | The cloud needs the played position to forget the unheard part of its answer, as `conversation.item.truncate` does in the OpenAI Realtime API |
 | IO-4 | **Context** with each turn: interaction state, what the screen shows, volume and mute, battery and charging, connectivity, local time | At turn start and on request | A snapshot, so that the AI knows the situation; the context sent with events in Alexa Voice Service works this way ([AVS context](https://web.archive.org/web/20240612194441/https://www.developer.amazon.com/en-US/docs/alexa/alexa-voice-service/context.html)) |
 | IO-5 | **Events** from the robot's modules: taps, a person seen or gone, battery low, charger plugged, emergency stop pressed, errors | As they happen, if the cloud subscribed | Extensible like capabilities (EXT-6); summaries, never raw sensor streams (PRIV-3) |
@@ -166,7 +168,7 @@ The checklists used are [ETSI EN 303 645](https://www.etsi.org/deliver/etsi_en/3
 | SEC-5 | Secrets on the robot (key, tokens, Wi-Fi password) **MUST** be readable only by the robot's service account, never committed, logged or shown, and wiped by a factory reset (ETSI 5.4). Hardware-backed key storage on the Pi is to be evaluated, from its documentation (decision 5). |
 | SEC-6 | The server **MUST** accept a robot only if it is bound to an account, and **MUST** confine every request to that robot's data (OWASP I3). |
 | SEC-7 | The robot **MUST** check every call against its catalogue and the call's schema, and refuse anything else (EXT-8). |
-| SEC-8 | Each capability **MUST** have a safety class that the robot enforces locally, whatever the cloud asks. Proposed classes: *informational* (the screen, sounds); *privacy* (the camera; a turn the cloud starts, other than a follow-up to its answer): only if the owner allowed it, always with an indicator; *physical* (motion): only within the configured limits, with every command expiring, refused while the emergency stop is pressed; *system* (reboot, update, settings): only in the documented safe states. |
+| SEC-8 | Each capability **MUST** have a safety class that the robot enforces locally, whatever the cloud asks. Proposed classes: *informational* (the screen, sounds); *privacy* (the camera; a conversation the cloud opens): only if the owner allowed it, always with an indicator; *physical* (motion): only within the configured limits, with every command expiring, refused while the emergency stop is pressed; *system* (reboot, update, settings): only in the documented safe states. |
 | SEC-9 | The owner **MUST** be able to switch off capability classes locally (for example "the cloud may not move the robot" or "never use the camera") with a setting the cloud cannot change. |
 | SEC-10 | Physical safety **MUST NOT** depend on the cloud or the network. The motion rules already in place (commands expire, `motion` stops first) and the body controller's heartbeat apply to cloud calls too. |
 | SEC-11 | Updates **MUST** be signed, verified on the robot before they are installed, and fetched over TLS. Installation **MUST** be able to roll back, and **MUST NOT** accept an older version than the installed one unless the owner says so (ETSI 5.3, 5.7; OWASP I4). |
@@ -210,7 +212,7 @@ The checklists used are [ETSI EN 303 645](https://www.etsi.org/deliver/etsi_en/3
 
 | ID | Requirement |
 |---|---|
-| TEST-1 | The protocol **MUST** be defined in `protocol/cloud/`: message schemas, the capability catalogue's format, examples. Both repositories test against it. |
+| TEST-1 | The protocol **MUST** be defined in `protocols/cloud/`: message schemas, the capability catalogue's format, examples. Both repositories test against it. |
 | TEST-2 | The robot's software **MUST** have a simulated cloud, so that it runs and is tested without the server, as with every other port. The server **SHOULD** have a simulated robot. |
 | TEST-3 | Tests **MUST** cover: refusing invalid certificates and unknown calls; the safety classes (SEC-8, SEC-9); rate limits; resuming a session; working offline (REL-1). |
 

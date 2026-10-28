@@ -1,0 +1,101 @@
+{
+  "description": "A session resumed after its connection was lost, with the message the device missed sent again; resumed again when the cloud asks before a restart; then a new session after the device restarted. A note tells what happens to the connection; it is not a message.",
+  "messages": [
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.0",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:20:00.250Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi"], "allowed_classes": ["informational"],
+      "conversations": false, "media": [], "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.0", "session": "01a18085-942c-78a0-9282-31c8cede2442",
+      "resumed": false, "time": "2026-10-28T03:20:00.310Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "mcp", "seq": 1,
+      "payload": {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {
+        "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
+        "name": "screen.show_expression", "arguments": {"expression": "happy"}
+      }}
+    }},
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 1, "reply_to": 1,
+      "payload": {"jsonrpc": "2.0", "id": 1, "result": {
+        "resultType": "complete",
+        "content": [{"type": "text", "text": "{\"showing\": \"happy\"}"}],
+        "structuredContent": {"showing": "happy"},
+        "isError": false
+      }}
+    }},
+    {"from": "device", "message": {"type": "ping", "received": 1}},
+    {"from": "cloud", "message": {"type": "pong", "received": 1}},
+    {"from": "cloud", "message": {
+      "type": "mcp", "seq": 2,
+      "payload": {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {
+        "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
+        "name": "screen.show_expression", "arguments": {"expression": "surprised"}
+      }}
+    }},
+    {"note": "The connection is lost before the device receives the cloud's message 2. The device gets a new token and connects again."},
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.0",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:21:30.100Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi"], "allowed_classes": ["informational"],
+      "conversations": false, "media": [], "events": [],
+      "resume": {"session": "01a18085-942c-78a0-9282-31c8cede2442", "received": 1}
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.0", "session": "01a18085-942c-78a0-9282-31c8cede2442",
+      "resumed": true, "received": 1, "time": "2026-10-28T03:21:30.180Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "mcp", "seq": 2,
+      "payload": {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {
+        "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
+        "name": "screen.show_expression", "arguments": {"expression": "surprised"}
+      }}
+    }},
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 2, "reply_to": 2,
+      "payload": {"jsonrpc": "2.0", "id": 2, "result": {
+        "resultType": "complete",
+        "content": [{"type": "text", "text": "{\"showing\": \"surprised\"}"}],
+        "structuredContent": {"showing": "surprised"},
+        "isError": false
+      }}
+    }},
+    {"from": "cloud", "message": {"type": "reconnect"}},
+    {"note": "The cloud is about to restart, and closes the connection. The device connects again at once, with a new token."},
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.0",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:25:00.400Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi"], "allowed_classes": ["informational"],
+      "conversations": false, "media": [], "events": [],
+      "resume": {"session": "01a18085-942c-78a0-9282-31c8cede2442", "received": 2}
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.0", "session": "01a18085-942c-78a0-9282-31c8cede2442",
+      "resumed": true, "received": 2, "time": "2026-10-28T03:25:00.470Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }},
+    {"from": "device", "message": {"type": "bye", "reason": "restarting"}},
+    {"note": "The device restarts, and no longer holds its session."},
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.0",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:40:00.250Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi"], "allowed_classes": ["informational"],
+      "conversations": false, "media": [], "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.0", "session": "01a18097-e3ac-79c6-a7cc-d13507b07fa3",
+      "resumed": false, "time": "2026-10-28T03:40:00.310Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }}
+  ]
+}
