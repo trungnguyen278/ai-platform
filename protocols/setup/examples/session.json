@@ -1,35 +1,35 @@
 {
-  "description": "A whole set-up: the exchange with the code 40917362, then Wi-Fi, a wrong password, the registration and the end, as each side reads the messages (in the clear). 'exchange' holds what an app needs to replay it byte for byte: the code, the salt, both sides' random scalars x and y (in hexadecimal), the two hellos as sent, w0 and w1, the context, the session keys, and the app's first encrypted message. The registration's signature is real: it verifies with the key in its header.",
+  "description": "A whole set-up: the exchange with the code 40917362, then Wi-Fi with a wrong password, the first settings, the registration and the end, as each side reads the messages (in the clear). 'exchange' holds what an app needs to replay it byte for byte: the code, the salt, both sides' random scalars x and y (in hexadecimal), the two hellos as sent, w0 and w1, the context, the session keys, and the app's first encrypted message. The registration's signature is real: it verifies with the key in its header, made for this example. The device does not support French, so it keeps the two other languages.",
   "exchange": {
     "code": "40917362",
     "salt": "r7PU-VUfcsPB3mT3bqvUIw",
     "x": "72d78e06743553d881d785c786c2a45d17d0ee09914ff6d3e84ac29ab41ffc16",
     "y": "2cd747e22edc02a5190b74916d0c6c6e38a9163a11c1c89c753e74d5ee562374",
-    "app_hello": "{\"type\": \"hello\", \"id\": \"a1\", \"protocol\": \"1.0\"}",
-    "robot_hello": "{\"type\": \"hello\", \"id\": \"r1\", \"reply_to\": \"a1\", \"protocol\": \"1.0\", \"discriminator\": \"3F7A\", \"salt\": \"r7PU-VUfcsPB3mT3bqvUIw\"}",
+    "app_hello": "{\"type\": \"hello\", \"seq\": 1, \"protocol\": \"2.0\"}",
+    "device_hello": "{\"type\": \"hello\", \"seq\": 1, \"reply_to\": 1, \"protocol\": \"2.0\", \"discriminator\": \"3F7A\", \"salt\": \"r7PU-VUfcsPB3mT3bqvUIw\"}",
     "w0": "640eed883e540d5ac38da62dca377ac1e77bd57706ded532a366831f62d3d788",
     "w1": "87ac79ef4d4f4df19c0ae540d6de1a192c3ddde60221378fa3f645e4b69d5de0",
-    "context": "cd00b69314073c35362738e1852f465e3ecbae2b9c81a6da8d548dea97620cff",
-    "app_key": "dedc9c571a5d9de63208a15ecce98d3d",
-    "robot_key": "9584487717cbfee70f4a9a2cadf5b5a4",
-    "first_encrypted": "vyC4EPLJ-JofzFJd61cnJ7t-hA-jcMaBDDnWEJk_y8HuKdXjyyvj1aO5H5A"
+    "context": "0a900d70e07678e891d85fdc26ccf43b4a0abc1afded2f41956e289c32aade29",
+    "app_key": "015fcecdc2e139e1a76368fe626051ac",
+    "device_key": "fa26ac7d27a7e3eece658839ec83bce5",
+    "first_encrypted": "-lpN2EBHY7eUihWq9-xItQBZd4Kw6-TkGBdiOtc2fgIWV9_N1GTCO98C"
   },
   "messages": [
     {
       "from": "app",
       "message": {
         "type": "hello",
-        "id": "a1",
-        "protocol": "1.0"
+        "seq": 1,
+        "protocol": "2.0"
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "hello",
-        "id": "r1",
-        "reply_to": "a1",
-        "protocol": "1.0",
+        "seq": 1,
+        "reply_to": 1,
+        "protocol": "2.0",
         "discriminator": "3F7A",
         "salt": "r7PU-VUfcsPB3mT3bqvUIw"
       }
@@ -38,45 +38,51 @@
       "from": "app",
       "message": {
         "type": "share",
-        "id": "a2",
+        "seq": 2,
         "share": "BNv3h-eybcVNtg_uJNn8yMDN9zCh-ydcdRs04T7gEFYJQaeN_wOgV09oZNRjw4ypE5JUFMBBD_bXY9OxmVTiQSo"
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "share",
-        "id": "r2",
-        "reply_to": "a2",
+        "seq": 2,
+        "reply_to": 2,
         "share": "BJNnkr7og6327t_F_SxdaFotQpu-NuXPYgodmGTpfcACLoWmSJgfLMT7t11RLG2oPTqm1ALJ0v0LmBouky4RmDo",
-        "confirm": "wJtvOpO2MkGQO4nJyL6nh40igyLmLiiVF4YoZM7NXWw"
+        "confirm": "DGosDUV7QVbNPOV_qsRdvEVvqeyiSoN_DNiLTGobnAQ"
       }
     },
     {
       "from": "app",
       "message": {
         "type": "confirm",
-        "id": "a3",
-        "confirm": "RQGLI8CB61ij5m9toUFV1S56wDZb1oqHNOicUdW8s0E"
+        "seq": 3,
+        "confirm": "QMI9QgAwVY0AglfJvEUZM4zJ3lGs4oLgrYm-U8gPbHE"
       }
     },
     {
       "from": "app",
       "message": {
         "type": "info",
-        "id": "a4"
+        "seq": 4
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "info",
-        "id": "r3",
-        "reply_to": "a4",
-        "robot": {
+        "seq": 3,
+        "reply_to": 4,
+        "device": {
           "id": "6f1c2a9e-0d55-4c4b-9a43-1f0e8b2d7c11",
           "name": "Robot",
-          "software": "0.1.0"
+          "kind": "robot",
+          "model": "concept-v0",
+          "software": "0.4.0",
+          "languages": [
+            "vi"
+          ],
+          "time_zone": "UTC"
         },
         "bound": false,
         "network": {
@@ -88,15 +94,15 @@
       "from": "app",
       "message": {
         "type": "networks",
-        "id": "a5"
+        "seq": 5
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "networks",
-        "id": "r4",
-        "reply_to": "a5",
+        "seq": 4,
+        "reply_to": 5,
         "networks": [
           {
             "ssid": "Home",
@@ -123,17 +129,17 @@
       "from": "app",
       "message": {
         "type": "join",
-        "id": "a6",
+        "seq": 6,
         "ssid": "Home",
         "password": "wrong horse"
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "error",
-        "id": "r5",
-        "reply_to": "a6",
+        "seq": 5,
+        "reply_to": 6,
         "code": "wrong_password",
         "message": "the network refused the password"
       }
@@ -142,17 +148,17 @@
       "from": "app",
       "message": {
         "type": "join",
-        "id": "a7",
+        "seq": 7,
         "ssid": "Home",
         "password": "correct horse battery"
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "joined",
-        "id": "r6",
-        "reply_to": "a7",
+        "seq": 6,
+        "reply_to": 7,
         "network": {
           "state": "connected",
           "ssid": "Home",
@@ -164,34 +170,60 @@
     {
       "from": "app",
       "message": {
+        "type": "configure",
+        "seq": 8,
+        "languages": [
+          "vi",
+          "en",
+          "fr"
+        ],
+        "time_zone": "Asia/Ho_Chi_Minh"
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "configured",
+        "seq": 7,
+        "reply_to": 8,
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "time_zone": "Asia/Ho_Chi_Minh"
+      }
+    },
+    {
+      "from": "app",
+      "message": {
         "type": "register",
-        "id": "a8",
+        "seq": 9,
         "challenge": "q7Hn2xWf0cJm4Lr9Vb8sKt",
         "server": "https://cloud.example"
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "registration",
-        "id": "r7",
-        "reply_to": "a8",
-        "registration": "eyJhbGciOiJFUzI1NiIsInR5cCI6InJvYm90LXJlZ2lzdHJhdGlvbitqd3QiLCJqd2siOnsia3R5IjoiRUMiLCJjcnYiOiJQLTI1NiIsIngiOiJ3SXVfOXVnaDFuSEdwRjM3SXFLX09UcVdZa2FmRWN6SGsyWWY1V01LajhVIiwieSI6InJyVG5BbmlrQTZlMy1nSUpiQ0E4T0xkQzFKaUFoRW1jUXk1WkVla1UzTWcifX0.eyJpc3MiOiI2ZjFjMmE5ZS0wZDU1LTRjNGItOWE0My0xZjBlOGIyZDdjMTEiLCJzdWIiOiI2ZjFjMmE5ZS0wZDU1LTRjNGItOWE0My0xZjBlOGIyZDdjMTEiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6InE3SG4yeFdmMGNKbTRMcjlWYjhzS3QiLCJqdGkiOiJXbTl4UTJ0TDdwUnMxYVZlIn0.jvuJ4ubbFRzZGUcXqcBFePqUY3rMFNtKDVy-5GcSkWipOzWB8Z41kNjtZmYV9gYd1qlEqPijORgqMyU6PYyfxQ"
+        "seq": 8,
+        "reply_to": 9,
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IjBHUzZYZWtYN3JCc3N2VlI4RzF2R3NhSkdhMnpqS3d2TTVQVkt4N2tMSTgiLCJ5IjoidGs0bTVIUHJKZzdwQ29hY1B3U0FudjBfTjNYLTRCNFlTamE0aXBhS1VCWSJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI2ZjFjMmE5ZS0wZDU1LTRjNGItOWE0My0xZjBlOGIyZDdjMTEiLCJzdWIiOiI2ZjFjMmE5ZS0wZDU1LTRjNGItOWE0My0xZjBlOGIyZDdjMTEiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6InE3SG4yeFdmMGNKbTRMcjlWYjhzS3QiLCJqdGkiOiJCdGg5Y20zTHRmMFZmMkp2In0.vSM6QuosrxpcEVS94fyPOt13Owa8sDIhUn0VfCzWcyNIsblaAqFevniJ2Xyi_JHm39ZLZumM1m5T95yBOL_f9g"
       }
     },
     {
       "from": "app",
       "message": {
         "type": "finish",
-        "id": "a9"
+        "seq": 10
       }
     },
     {
-      "from": "robot",
+      "from": "device",
       "message": {
         "type": "finished",
-        "id": "r8",
-        "reply_to": "a9"
+        "seq": 9,
+        "reply_to": 10
       }
     }
   ]

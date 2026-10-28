@@ -1,10 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Set-up, the app and the robot over Bluetooth LE, version 1.0",
-  "description": "Every message of the set-up protocol, as its JSON (README.md). from_app and from_robot are the messages of each side, in the clear or, after the exchange, once decrypted.",
+  "title": "Set-up, the app and a device over Bluetooth LE, version 2.0",
+  "description": "Every message of the set-up protocol, as its JSON (README.md). from_app and from_device are the messages of each side, in the clear or, after the exchange, once decrypted. Unknown message types and fields are allowed, so that newer minor versions can add them.",
   "$defs": {
-    "id": {"type": "string", "minLength": 1, "maxLength": 64},
+    "seq": {"type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "A message's number in its session"},
+    "uuid": {"type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"},
     "version": {"type": "string", "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}$"},
+    "code": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+    "name": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,128}$"},
+    "language": {"type": "string", "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$", "maxLength": 35, "description": "A BCP 47 tag"},
+    "languages": {"type": "array", "items": {"$ref": "#/$defs/language"}, "minItems": 1, "maxItems": 16, "uniqueItems": true},
+    "time_zone": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$", "maxLength": 64, "description": "An IANA time zone name"},
     "discriminator": {"type": "string", "pattern": "^[0-9A-F]{4}$"},
     "salt": {"description": "16 bytes, base64url without padding", "type": "string", "pattern": "^[A-Za-z0-9_-]{22}$"},
     "point": {"description": "A P-256 point in SEC1's uncompressed form, 65 bytes, base64url without padding", "type": "string", "pattern": "^[A-Za-z0-9_-]{87}$"},
@@ -20,7 +26,7 @@
     },
     "security": {"enum": ["open", "wpa2", "wpa3", "other"]},
     "network": {
-      "description": "A network the robot sees",
+      "description": "A network the device sees",
       "type": "object",
       "allOf": [{"$ref": "#/$defs/named"}],
       "required": ["security", "signal", "saved"],
@@ -33,7 +39,7 @@
       }
     },
     "network_status": {
-      "description": "The network the robot is on",
+      "description": "The network the device is on",
       "type": "object",
       "required": ["state"],
       "properties": {
@@ -48,17 +54,17 @@
     },
     "message": {
       "type": "object",
-      "required": ["type", "id"],
+      "required": ["type", "seq"],
       "properties": {
-        "type": {"type": "string", "minLength": 1, "maxLength": 64},
-        "id": {"$ref": "#/$defs/id"},
-        "reply_to": {"$ref": "#/$defs/id"}
+        "type": {"type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$", "maxLength": 64},
+        "seq": {"$ref": "#/$defs/seq"},
+        "reply_to": {"$ref": "#/$defs/seq"}
       }
     },
     "answer": {"required": ["reply_to"]},
 
     "app_hello": {"required": ["protocol"], "properties": {"protocol": {"$ref": "#/$defs/version"}}},
-    "robot_hello": {
+    "device_hello": {
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["protocol", "discriminator", "salt"],
       "properties": {
@@ -68,7 +74,7 @@
       }
     },
     "app_share": {"required": ["share"], "properties": {"share": {"$ref": "#/$defs/point"}}},
-    "robot_share": {
+    "device_share": {
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["share", "confirm"],
       "properties": {"share": {"$ref": "#/$defs/point"}, "confirm": {"$ref": "#/$defs/tag"}}
@@ -86,6 +92,13 @@
       "if": {"required": ["hidden"], "properties": {"hidden": {"const": true}}},
       "then": {"required": ["security"]}
     },
+    "configure": {
+      "properties": {
+        "languages": {"$ref": "#/$defs/languages"},
+        "time_zone": {"$ref": "#/$defs/time_zone"}
+      },
+      "anyOf": [{"required": ["languages"]}, {"required": ["time_zone"]}]
+    },
     "register": {
       "required": ["challenge", "server"],
       "properties": {
@@ -95,15 +108,19 @@
     },
     "info": {
       "allOf": [{"$ref": "#/$defs/answer"}],
-      "required": ["robot", "bound", "network"],
+      "required": ["device", "bound", "network"],
       "properties": {
-        "robot": {
+        "device": {
           "type": "object",
-          "required": ["id", "name", "software"],
+          "required": ["id", "name", "kind", "model", "software", "languages", "time_zone"],
           "properties": {
-            "id": {"type": "string", "minLength": 1, "maxLength": 64},
+            "id": {"$ref": "#/$defs/uuid"},
             "name": {"type": "string", "minLength": 1, "maxLength": 64},
-            "software": {"type": "string", "minLength": 1, "maxLength": 64}
+            "kind": {"$ref": "#/$defs/code"},
+            "model": {"$ref": "#/$defs/name"},
+            "software": {"type": "string", "minLength": 1, "maxLength": 64},
+            "languages": {"$ref": "#/$defs/languages"},
+            "time_zone": {"$ref": "#/$defs/time_zone"}
           }
         },
         "bound": {"type": "boolean"},
@@ -116,6 +133,11 @@
       "properties": {"networks": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/network"}}}
     },
     "joined": {"allOf": [{"$ref": "#/$defs/answer"}], "required": ["network"], "properties": {"network": {"$ref": "#/$defs/network_status"}}},
+    "configured": {
+      "allOf": [{"$ref": "#/$defs/answer"}],
+      "required": ["languages", "time_zone"],
+      "properties": {"languages": {"$ref": "#/$defs/languages"}, "time_zone": {"$ref": "#/$defs/time_zone"}}
+    },
     "registration": {
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["registration"],
@@ -136,6 +158,8 @@
     "is_networks": {"required": ["type"], "properties": {"type": {"const": "networks"}}},
     "is_join": {"required": ["type"], "properties": {"type": {"const": "join"}}},
     "is_joined": {"required": ["type"], "properties": {"type": {"const": "joined"}}},
+    "is_configure": {"required": ["type"], "properties": {"type": {"const": "configure"}}},
+    "is_configured": {"required": ["type"], "properties": {"type": {"const": "configured"}}},
     "is_register": {"required": ["type"], "properties": {"type": {"const": "register"}}},
     "is_registration": {"required": ["type"], "properties": {"type": {"const": "registration"}}},
     "is_finished": {"required": ["type"], "properties": {"type": {"const": "finished"}}},
@@ -148,18 +172,20 @@
         {"if": {"$ref": "#/$defs/is_share"}, "then": {"$ref": "#/$defs/app_share"}},
         {"if": {"$ref": "#/$defs/is_confirm"}, "then": {"$ref": "#/$defs/confirm"}},
         {"if": {"$ref": "#/$defs/is_join"}, "then": {"$ref": "#/$defs/join"}},
+        {"if": {"$ref": "#/$defs/is_configure"}, "then": {"$ref": "#/$defs/configure"}},
         {"if": {"$ref": "#/$defs/is_register"}, "then": {"$ref": "#/$defs/register"}},
         {"if": {"$ref": "#/$defs/is_error"}, "then": {"$ref": "#/$defs/error"}}
       ]
     },
-    "from_robot": {
+    "from_device": {
       "$ref": "#/$defs/message",
       "allOf": [
-        {"if": {"$ref": "#/$defs/is_hello"}, "then": {"$ref": "#/$defs/robot_hello"}},
-        {"if": {"$ref": "#/$defs/is_share"}, "then": {"$ref": "#/$defs/robot_share"}},
+        {"if": {"$ref": "#/$defs/is_hello"}, "then": {"$ref": "#/$defs/device_hello"}},
+        {"if": {"$ref": "#/$defs/is_share"}, "then": {"$ref": "#/$defs/device_share"}},
         {"if": {"$ref": "#/$defs/is_info"}, "then": {"$ref": "#/$defs/info"}},
         {"if": {"$ref": "#/$defs/is_networks"}, "then": {"$ref": "#/$defs/networks"}},
         {"if": {"$ref": "#/$defs/is_joined"}, "then": {"$ref": "#/$defs/joined"}},
+        {"if": {"$ref": "#/$defs/is_configured"}, "then": {"$ref": "#/$defs/configured"}},
         {"if": {"$ref": "#/$defs/is_registration"}, "then": {"$ref": "#/$defs/registration"}},
         {"if": {"$ref": "#/$defs/is_finished"}, "then": {"$ref": "#/$defs/answer"}},
         {"if": {"$ref": "#/$defs/is_error"}, "then": {"$ref": "#/$defs/error"}}
