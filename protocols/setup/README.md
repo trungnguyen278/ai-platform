@@ -5,7 +5,7 @@ How the owner's app sets up a robot: its Wi-Fi network, and its registration wit
 - The app (`ai-app`) does not exist yet.
 
 Version **1.0**:
-- It follows [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), proposed, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md).
+- It follows [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), accepted, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md).
 - It meets the [requirements](../cloud/requirements.md) on set-up and ownership (PROV-1 to PROV-4), and SEC-3, SEC-5 and SEC-16.
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12.
 - [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys. The robot's tests check it against the schema, and replay it (ai-robot's `software/tests/test_setup_protocol.py`).

@@ -10,6 +10,9 @@ Each significant decision is a short file: context, decision, alternatives consi
 |---|---|---|---|
 | [0001](0001-repositories.md) | Repositories: a family of AI products, sharing one platform | Accepted | 2026-10-28 |
 | [0002](0002-languages.md) | Languages: Vietnamese first, any language added as data | Accepted | 2026-10-28 |
+| [0003](0003-compatibility.md) | Compatibility: every device in the field keeps working | Proposed | 2026-10-28 |
+| [0004](0004-conventions.md) | Conventions: one way to write identifiers, time, errors and APIs | Proposed | 2026-10-28 |
+| [0005](0005-homes.md) | Homes: a device belongs to a home, and people are its members | Proposed | 2026-10-28 |
 
 ## Earlier decisions, in ai-robot
 

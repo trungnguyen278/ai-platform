@@ -32,6 +32,8 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **Security:** nothing secret travels in clear or reaches a log; replays have no effect (SEC-12); the requirements in `protocols/cloud/requirements.md` §9 still hold.
 - **Examples:** made-up values only; each exchange is whole and in order.
 - **Sources:** what the protocol relies on (an RFC, a Bluetooth specification) is cited, with the section.
+- **Conventions** ([ADR-0004](../../../docs/decisions/0004-conventions.md)): UUIDs, RFC 3339 instants, durations in seconds, IANA time zones for civil times, snake_case fields, Problem Details for HTTPS errors.
+- **Compatibility** ([ADR-0003](../../../docs/decisions/0003-compatibility.md)): a breaking change is a new major, with a plan for both majors to run side by side; the update path does not change.
 
 ### A decision
 
