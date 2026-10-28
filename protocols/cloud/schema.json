@@ -1,23 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Robot-cloud link, version 2.2",
-  "description": "Every message of protocol/cloud/README.md, each sent as one text stream on the topic ai-robot. Validate a message from the robot against #/$defs/from_robot, one from the cloud against #/$defs/from_cloud. Unknown message types and fields are allowed, so that newer minor versions can add them.",
+  "title": "Cloud link, version 3.0",
+  "description": "Every message of protocols/cloud/README.md. On the control channel, each is one text frame: validate a device's against #/$defs/from_device, the cloud's against #/$defs/from_cloud. In a conversation's room, each is one text stream: validate the agent's against #/$defs/from_agent, the device's against #/$defs/from_device_in_room. Unknown message types and fields are allowed, so that newer minor versions can add them.",
   "$defs": {
-    "id": {"type": "string", "minLength": 1, "maxLength": 64},
-    "time": {"type": "number", "minimum": 0, "description": "Unix seconds on the sender's clock"},
+    "uuid": {"type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"},
+    "seq": {"type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "A message's number in its session"},
+    "count": {"type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "The last number received; 0 before any"},
+    "instant": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$", "description": "RFC 3339, in UTC"},
+    "seconds": {"type": "number", "minimum": 0, "maximum": 86400},
+    "code": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
     "name": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,128}$"},
+    "language": {"type": "string", "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$", "maxLength": 35, "description": "A BCP 47 tag"},
+    "time_zone": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$", "maxLength": 64, "description": "An IANA time zone name"},
     "short_text": {"type": "string", "maxLength": 256},
     "json_schema": {"type": "object", "description": "A JSON Schema, 2020-12 unless it says otherwise"},
     "version": {"type": "string", "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}$"},
 
-    "message": {
+    "envelope": {
       "type": "object",
-      "required": ["type", "id"],
+      "required": ["type"],
       "properties": {
-        "type": {"type": "string", "minLength": 1, "maxLength": 64},
-        "id": {"$ref": "#/$defs/id"},
-        "reply_to": {"$ref": "#/$defs/id"}
-      }
+        "type": {"type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$", "maxLength": 64},
+        "seq": {"$ref": "#/$defs/seq"},
+        "reply_to": {"$ref": "#/$defs/seq"}
+      },
+      "if": {"required": ["type"], "properties": {"type": {"enum": ["hello", "ping", "pong", "reconnect", "bye"]}}},
+      "else": {"required": ["seq"]}
+    },
+    "room_envelope": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {"type": {"type": "string", "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$", "maxLength": 64}}
     },
 
     "event_kind": {
@@ -29,31 +42,70 @@
         "schema": {"$ref": "#/$defs/json_schema"}
       }
     },
+    "languages": {"type": "array", "items": {"$ref": "#/$defs/language"}, "minItems": 1, "maxItems": 16, "uniqueItems": true},
+    "allowed_classes": {"type": "array", "items": {"$ref": "#/$defs/code"}, "maxItems": 16, "uniqueItems": true, "description": "informational, privacy, physical, system"},
 
-    "robot_hello": {
-      "required": ["protocol", "software", "time", "utc_offset", "conversations", "events"],
+    "device_hello": {
+      "required": ["protocol", "device", "time", "time_zone", "languages", "allowed_classes", "conversations", "media", "events"],
       "properties": {
         "protocol": {"$ref": "#/$defs/version"},
-        "software": {"type": "string", "minLength": 1, "maxLength": 64},
-        "time": {"$ref": "#/$defs/time"},
-        "utc_offset": {"type": "integer", "minimum": -1440, "maximum": 1440, "description": "Minutes"},
-        "conversations": {"type": "boolean", "description": "The robot publishes its microphone for turns and plays the agent's voice"},
-        "events": {"type": "array", "items": {"$ref": "#/$defs/event_kind"}, "maxItems": 256}
+        "device": {
+          "type": "object",
+          "required": ["kind", "model", "software"],
+          "properties": {
+            "kind": {"$ref": "#/$defs/code"},
+            "model": {"$ref": "#/$defs/name"},
+            "software": {"type": "string", "minLength": 1, "maxLength": 64}
+          }
+        },
+        "time": {"$ref": "#/$defs/instant"},
+        "time_zone": {"$ref": "#/$defs/time_zone"},
+        "languages": {"$ref": "#/$defs/languages"},
+        "allowed_classes": {"$ref": "#/$defs/allowed_classes"},
+        "conversations": {"type": "boolean", "description": "The device streams what it hears in conversations, and plays the cloud's voice"},
+        "media": {"type": "array", "items": {"$ref": "#/$defs/code"}, "maxItems": 8, "uniqueItems": true, "description": "livekit"},
+        "events": {"type": "array", "items": {"$ref": "#/$defs/event_kind"}, "maxItems": 256},
+        "resume": {
+          "type": "object",
+          "required": ["session", "received"],
+          "properties": {"session": {"$ref": "#/$defs/uuid"}, "received": {"$ref": "#/$defs/count"}}
+        },
+        "conversation": {"$ref": "#/$defs/uuid"}
       }
     },
     "cloud_hello": {
-      "required": ["reply_to", "protocol", "session", "time", "conversations", "events"],
+      "required": ["protocol", "session", "resumed", "time", "ping_interval", "conversations", "events"],
       "properties": {
         "protocol": {"$ref": "#/$defs/version"},
-        "session": {
-          "type": "object",
-          "required": ["id"],
-          "properties": {"id": {"type": "string", "minLength": 1, "maxLength": 128}}
-        },
-        "time": {"$ref": "#/$defs/time"},
-        "conversations": {"type": "boolean", "description": "The agent takes turns and answers with its voice"},
-        "events": {"type": "array", "items": {"$ref": "#/$defs/name"}, "maxItems": 256}
-      }
+        "session": {"$ref": "#/$defs/uuid"},
+        "resumed": {"type": "boolean"},
+        "received": {"$ref": "#/$defs/count"},
+        "time": {"$ref": "#/$defs/instant"},
+        "ping_interval": {"type": "number", "exclusiveMinimum": 0, "maximum": 3600, "description": "Seconds"},
+        "conversations": {"type": "boolean", "description": "The cloud holds conversations with the device"},
+        "events": {"type": "array", "items": {"$ref": "#/$defs/name"}, "maxItems": 256, "uniqueItems": true}
+      },
+      "if": {"required": ["resumed"], "properties": {"resumed": {"const": true}}},
+      "then": {"required": ["received"]}
+    },
+    "received": {
+      "required": ["received"],
+      "properties": {"received": {"$ref": "#/$defs/count"}}
+    },
+    "bye": {
+      "required": ["reason"],
+      "properties": {"reason": {"$ref": "#/$defs/code"}, "message": {"$ref": "#/$defs/short_text"}}
+    },
+    "reconnect": {
+      "properties": {"message": {"$ref": "#/$defs/short_text"}}
+    },
+    "device_changed": {
+      "properties": {
+        "languages": {"$ref": "#/$defs/languages"},
+        "time_zone": {"$ref": "#/$defs/time_zone"},
+        "allowed_classes": {"$ref": "#/$defs/allowed_classes"}
+      },
+      "anyOf": [{"required": ["languages"]}, {"required": ["time_zone"]}, {"required": ["allowed_classes"]}]
     },
     "mcp": {
       "required": ["payload"],
@@ -70,118 +122,151 @@
       "required": ["name", "time", "data"],
       "properties": {
         "name": {"$ref": "#/$defs/name"},
-        "time": {"$ref": "#/$defs/time"},
+        "time": {"$ref": "#/$defs/instant"},
         "data": {"type": "object"}
       }
     },
-    "turn_start": {
-      "required": ["turn", "trigger", "context"],
+    "conversation_request": {
+      "required": ["conversation", "trigger", "context"],
       "properties": {
-        "turn": {"$ref": "#/$defs/id"},
-        "trigger": {"type": "string", "minLength": 1, "maxLength": 32, "description": "wake_word, tap, button, follow_up or barge_in"},
+        "conversation": {"$ref": "#/$defs/uuid"},
+        "trigger": {"$ref": "#/$defs/code", "description": "wake_word, touch or button"},
         "context": {
           "type": "object",
           "properties": {
-            "battery": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+            "battery": {"type": ["number", "null"], "minimum": 0, "maximum": 100, "description": "Percent"},
             "charging": {"type": ["boolean", "null"]}
           }
         }
       }
     },
-    "turn": {
-      "required": ["turn"],
-      "properties": {"turn": {"$ref": "#/$defs/id"}, "reason": {"$ref": "#/$defs/short_text"}}
-    },
-    "robot_speech_end": {
-      "required": ["turn", "speech_ms"],
+    "conversation_start": {
+      "required": ["conversation", "listen", "media"],
       "properties": {
-        "turn": {"$ref": "#/$defs/id"},
-        "speech_ms": {"type": "integer", "minimum": 0, "description": "How much speech the robot sent in the turn"}
-      }
-    },
-    "response_start": {
-      "required": ["response", "turn"],
-      "properties": {
-        "response": {"$ref": "#/$defs/id"},
-        "turn": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]}
-      }
-    },
-    "response_text": {
-      "required": ["response", "delta"],
-      "properties": {"response": {"$ref": "#/$defs/id"}, "delta": {"type": "string", "maxLength": 4096}}
-    },
-    "response_end": {
-      "required": ["response", "follow_up"],
-      "properties": {"response": {"$ref": "#/$defs/id"}, "follow_up": {"type": "boolean"}}
-    },
-    "response": {
-      "required": ["response"],
-      "properties": {"response": {"$ref": "#/$defs/id"}}
-    },
-    "error": {
-      "required": ["code", "message"],
-      "properties": {
-        "code": {"type": "string", "minLength": 1, "maxLength": 64},
-        "message": {"type": "string", "maxLength": 1024}
-      }
-    },
-    "bye": {
-      "required": ["reason"],
-      "properties": {"reason": {"$ref": "#/$defs/short_text"}}
-    },
-
-    "token_response": {
-      "description": "What the token endpoint answers to a robot it knows (README, Tokens from the server)",
-      "type": "object",
-      "required": ["access_token", "token_type", "expires_in", "livekit"],
-      "properties": {
-        "access_token": {"type": "string", "minLength": 1, "maxLength": 8192},
-        "token_type": {"type": "string", "minLength": 1, "maxLength": 32},
-        "expires_in": {"type": "integer", "minimum": 1},
-        "livekit": {
+        "conversation": {"$ref": "#/$defs/uuid"},
+        "listen": {"type": "boolean", "description": "The device streams what it hears"},
+        "media": {
           "type": "object",
-          "required": ["url", "token"],
+          "minProperties": 1,
+          "maxProperties": 1,
           "properties": {
-            "url": {"type": "string", "pattern": "^wss?://", "maxLength": 2048},
-            "token": {"type": "string", "minLength": 1, "maxLength": 8192}
+            "livekit": {
+              "type": "object",
+              "required": ["url", "token"],
+              "properties": {
+                "url": {"type": "string", "pattern": "^wss?://", "maxLength": 2048},
+                "token": {"type": "string", "minLength": 1, "maxLength": 8192}
+              }
+            }
           }
         }
       }
     },
+    "conversation_end": {
+      "required": ["conversation", "reason"],
+      "properties": {"conversation": {"$ref": "#/$defs/uuid"}, "reason": {"$ref": "#/$defs/code"}}
+    },
+    "turn": {
+      "required": ["turn"],
+      "properties": {"turn": {"$ref": "#/$defs/uuid"}}
+    },
+    "turn_cancel": {
+      "required": ["turn", "reason"],
+      "properties": {"turn": {"$ref": "#/$defs/uuid"}, "reason": {"$ref": "#/$defs/code"}}
+    },
+    "response_start": {
+      "required": ["response", "turn", "language"],
+      "properties": {
+        "response": {"$ref": "#/$defs/uuid"},
+        "turn": {"oneOf": [{"$ref": "#/$defs/uuid"}, {"type": "null"}]},
+        "language": {"$ref": "#/$defs/language"}
+      }
+    },
+    "response_text": {
+      "required": ["response", "delta"],
+      "properties": {"response": {"$ref": "#/$defs/uuid"}, "delta": {"type": "string", "maxLength": 4096}}
+    },
+    "response": {
+      "required": ["response"],
+      "properties": {"response": {"$ref": "#/$defs/uuid"}}
+    },
+    "error": {
+      "required": ["reply_to", "code", "message"],
+      "properties": {
+        "code": {"$ref": "#/$defs/code"},
+        "message": {"type": "string", "maxLength": 1024},
+        "retry_after": {"$ref": "#/$defs/seconds"}
+      }
+    },
 
-    "from_robot": {
-      "$ref": "#/$defs/message",
+    "token_response": {
+      "description": "What the token endpoint answers to a device it knows (README, Tokens from the server)",
+      "type": "object",
+      "required": ["access_token", "token_type", "expires_in"],
+      "properties": {
+        "access_token": {"type": "string", "minLength": 1, "maxLength": 8192},
+        "token_type": {"type": "string", "minLength": 1, "maxLength": 32, "description": "Bearer"},
+        "expires_in": {"type": "integer", "minimum": 1, "maximum": 86400, "description": "Seconds"}
+      }
+    },
+
+    "from_device": {
+      "$ref": "#/$defs/envelope",
       "allOf": [
-        {"if": {"$ref": "#/$defs/is_hello"}, "then": {"$ref": "#/$defs/robot_hello"}},
+        {"if": {"$ref": "#/$defs/is_hello"}, "then": {"$ref": "#/$defs/device_hello"}},
+        {"if": {"$ref": "#/$defs/is_ping"}, "then": {"$ref": "#/$defs/received"}},
+        {"if": {"$ref": "#/$defs/is_bye"}, "then": {"$ref": "#/$defs/bye"}},
+        {"if": {"$ref": "#/$defs/is_device_changed"}, "then": {"$ref": "#/$defs/device_changed"}},
         {"if": {"$ref": "#/$defs/is_mcp"}, "then": {"$ref": "#/$defs/mcp"}},
         {"if": {"$ref": "#/$defs/is_event"}, "then": {"$ref": "#/$defs/event"}},
-        {"if": {"$ref": "#/$defs/is_turn_start"}, "then": {"$ref": "#/$defs/turn_start"}},
-        {"if": {"$ref": "#/$defs/is_turn_speech_end"}, "then": {"$ref": "#/$defs/robot_speech_end"}},
-        {"if": {"$ref": "#/$defs/is_turn_cancel"}, "then": {"$ref": "#/$defs/turn"}},
-        {"if": {"$ref": "#/$defs/is_response_interrupted"}, "then": {"$ref": "#/$defs/response"}},
-        {"if": {"$ref": "#/$defs/is_error"}, "then": {"$ref": "#/$defs/error"}},
-        {"if": {"$ref": "#/$defs/is_bye"}, "then": {"$ref": "#/$defs/bye"}}
+        {"if": {"$ref": "#/$defs/is_conversation_request"}, "then": {"$ref": "#/$defs/conversation_request"}},
+        {"if": {"$ref": "#/$defs/is_conversation_end"}, "then": {"$ref": "#/$defs/conversation_end"}},
+        {"if": {"$ref": "#/$defs/is_error"}, "then": {"$ref": "#/$defs/error"}}
       ]
     },
     "from_cloud": {
-      "$ref": "#/$defs/message",
+      "$ref": "#/$defs/envelope",
       "allOf": [
         {"if": {"$ref": "#/$defs/is_hello"}, "then": {"$ref": "#/$defs/cloud_hello"}},
+        {"if": {"$ref": "#/$defs/is_pong"}, "then": {"$ref": "#/$defs/received"}},
+        {"if": {"$ref": "#/$defs/is_reconnect"}, "then": {"$ref": "#/$defs/reconnect"}},
+        {"if": {"$ref": "#/$defs/is_bye"}, "then": {"$ref": "#/$defs/bye"}},
         {"if": {"$ref": "#/$defs/is_mcp"}, "then": {"$ref": "#/$defs/mcp"}},
+        {"if": {"$ref": "#/$defs/is_conversation_start"}, "then": {"$ref": "#/$defs/conversation_start"}},
+        {"if": {"$ref": "#/$defs/is_conversation_end"}, "then": {"$ref": "#/$defs/conversation_end"}},
+        {"if": {"$ref": "#/$defs/is_error"}, "then": {"$ref": "#/$defs/error"}}
+      ]
+    },
+    "from_agent": {
+      "$ref": "#/$defs/room_envelope",
+      "allOf": [
+        {"if": {"$ref": "#/$defs/is_turn_start"}, "then": {"$ref": "#/$defs/turn"}},
         {"if": {"$ref": "#/$defs/is_turn_speech_end"}, "then": {"$ref": "#/$defs/turn"}},
-        {"if": {"$ref": "#/$defs/is_turn_cancel"}, "then": {"$ref": "#/$defs/turn"}},
+        {"if": {"$ref": "#/$defs/is_turn_cancel"}, "then": {"$ref": "#/$defs/turn_cancel"}},
         {"if": {"$ref": "#/$defs/is_response_start"}, "then": {"$ref": "#/$defs/response_start"}},
         {"if": {"$ref": "#/$defs/is_response_text"}, "then": {"$ref": "#/$defs/response_text"}},
-        {"if": {"$ref": "#/$defs/is_response_end"}, "then": {"$ref": "#/$defs/response_end"}},
-        {"if": {"$ref": "#/$defs/is_response_stop"}, "then": {"$ref": "#/$defs/response"}},
-        {"if": {"$ref": "#/$defs/is_error"}, "then": {"$ref": "#/$defs/error"}},
-        {"if": {"$ref": "#/$defs/is_bye"}, "then": {"$ref": "#/$defs/bye"}}
+        {"if": {"$ref": "#/$defs/is_response_end"}, "then": {"$ref": "#/$defs/response"}},
+        {"if": {"$ref": "#/$defs/is_response_stop"}, "then": {"$ref": "#/$defs/response"}}
+      ]
+    },
+    "from_device_in_room": {
+      "$ref": "#/$defs/room_envelope",
+      "allOf": [
+        {"if": {"$ref": "#/$defs/is_response_interrupted"}, "then": {"$ref": "#/$defs/response"}}
       ]
     },
 
     "is_hello": {"required": ["type"], "properties": {"type": {"const": "hello"}}},
+    "is_ping": {"required": ["type"], "properties": {"type": {"const": "ping"}}},
+    "is_pong": {"required": ["type"], "properties": {"type": {"const": "pong"}}},
+    "is_reconnect": {"required": ["type"], "properties": {"type": {"const": "reconnect"}}},
+    "is_bye": {"required": ["type"], "properties": {"type": {"const": "bye"}}},
+    "is_device_changed": {"required": ["type"], "properties": {"type": {"const": "device.changed"}}},
     "is_mcp": {"required": ["type"], "properties": {"type": {"const": "mcp"}}},
     "is_event": {"required": ["type"], "properties": {"type": {"const": "event"}}},
+    "is_conversation_request": {"required": ["type"], "properties": {"type": {"const": "conversation.request"}}},
+    "is_conversation_start": {"required": ["type"], "properties": {"type": {"const": "conversation.start"}}},
+    "is_conversation_end": {"required": ["type"], "properties": {"type": {"const": "conversation.end"}}},
     "is_turn_start": {"required": ["type"], "properties": {"type": {"const": "turn.start"}}},
     "is_turn_speech_end": {"required": ["type"], "properties": {"type": {"const": "turn.speech_end"}}},
     "is_turn_cancel": {"required": ["type"], "properties": {"type": {"const": "turn.cancel"}}},
@@ -190,7 +275,6 @@
     "is_response_end": {"required": ["type"], "properties": {"type": {"const": "response.end"}}},
     "is_response_stop": {"required": ["type"], "properties": {"type": {"const": "response.stop"}}},
     "is_response_interrupted": {"required": ["type"], "properties": {"type": {"const": "response.interrupted"}}},
-    "is_error": {"required": ["type"], "properties": {"type": {"const": "error"}}},
-    "is_bye": {"required": ["type"], "properties": {"type": {"const": "bye"}}}
+    "is_error": {"required": ["type"], "properties": {"type": {"const": "error"}}}
   }
 }

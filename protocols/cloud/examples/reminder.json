@@ -1,0 +1,48 @@
+{
+  "description": "Conversations the cloud opens for a reminder, on a device whose owner does not let the cloud listen: the one that asks to listen is refused, the one that only speaks is played. Then the user's own request meets a spent budget. The agent's messages travel in the room; the others on the control channel. An audio step tells what happens in the room at that point; it is not a message.",
+  "messages": [
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.0",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T09:00:00.250Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi", "en"], "allowed_classes": ["informational", "physical"],
+      "conversations": true, "media": ["livekit"], "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.0", "session": "01a181bc-dbac-7a75-8d70-c84bd3b9c9d9",
+      "resumed": false, "time": "2026-10-28T09:00:00.310Z", "ping_interval": 20,
+      "conversations": true, "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "conversation.start", "seq": 1, "conversation": "01a181bc-ee08-7d78-a65f-1aced0ebe5c2",
+      "listen": true, "media": {"livekit": {"url": "wss://media.cloud.example", "token": "eyJhbGciOiJIUzI1NiIs..."}}
+    }},
+    {"from": "device", "message": {
+      "type": "error", "seq": 1, "reply_to": 1, "code": "not_allowed",
+      "message": "the owner does not allow the cloud to listen"
+    }},
+    {"from": "cloud", "message": {
+      "type": "conversation.start", "seq": 2, "conversation": "01a181bc-f5d8-787e-99b6-bf58eaded544",
+      "listen": false, "media": {"livekit": {"url": "wss://media.cloud.example", "token": "eyJhbGciOiJIUzI1NiIs..."}}
+    }},
+    {"from": "device", "audio": "The device joins the room, and publishes nothing"},
+    {"from": "agent", "message": {
+      "type": "response.start", "response": "01a181bc-fbb4-7f8e-a9e2-1477d4f65eb6", "turn": null, "language": "en"
+    }},
+    {"from": "agent", "message": {"type": "response.text", "response": "01a181bc-fbb4-7f8e-a9e2-1477d4f65eb6", "delta": "Time to water the plants."}},
+    {"from": "agent", "audio": "The reminder's voice, on the agent's track"},
+    {"from": "agent", "message": {"type": "response.end", "response": "01a181bc-fbb4-7f8e-a9e2-1477d4f65eb6"}},
+    {"from": "cloud", "message": {
+      "type": "conversation.end", "seq": 3, "conversation": "01a181bc-f5d8-787e-99b6-bf58eaded544", "reason": "done"
+    }},
+    {"from": "device", "audio": "The device and the agent leave the room"},
+    {"from": "device", "message": {
+      "type": "conversation.request", "seq": 2, "conversation": "01a181c1-6e60-7593-b873-d58b89032e24",
+      "trigger": "touch", "context": {"battery": null, "charging": true}
+    }},
+    {"from": "cloud", "message": {
+      "type": "error", "seq": 4, "reply_to": 2, "code": "limit_reached",
+      "message": "today's conversation budget is spent", "retry_after": 3600
+    }}
+  ]
+}

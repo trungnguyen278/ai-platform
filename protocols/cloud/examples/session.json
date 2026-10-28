@@ -1,12 +1,15 @@
 {
-  "description": "A session as the robot runs it today, without conversations: the hello exchange, MCP discovery, a subscription to catalogue changes, calls that succeed and fail, an event, and the end. The enum of expressions in tools/list is shortened here.",
+  "description": "A session without a conversation: the hello exchange, MCP discovery, a subscription to catalogue changes, calls that succeed and fail, an event, a ping, the owner switching a class off, and the end. The enum of expressions in tools/list is shortened here.",
   "messages": [
-    {"from": "robot", "message": {
-      "type": "hello", "id": "r1", "protocol": "2.2", "software": "0.1.0",
-      "time": 1792130400.25, "utc_offset": 420, "conversations": false,
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.0",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:20:00.250Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi", "en"], "allowed_classes": ["informational", "physical"],
+      "conversations": true, "media": ["livekit"],
       "events": [{
         "name": "screen.touched",
-        "description": "Someone tapped the screen",
+        "description": "Someone touched the screen",
         "schema": {
           "type": "object",
           "properties": {
@@ -18,51 +21,50 @@
       }]
     }},
     {"from": "cloud", "message": {
-      "type": "hello", "id": "c1", "reply_to": "r1", "protocol": "2.2",
-      "session": {"id": "s-5f2a"},
-      "time": 1792130400.31, "conversations": true,
-      "events": ["screen.touched"]
+      "type": "hello", "protocol": "3.0", "session": "01a18085-942c-78a0-9282-31c8cede2442",
+      "resumed": false, "time": "2026-10-28T03:20:00.310Z", "ping_interval": 20,
+      "conversations": true, "events": ["screen.touched"]
     }},
     {"from": "cloud", "message": {
-      "type": "mcp", "id": "c2",
+      "type": "mcp", "seq": 1,
       "payload": {"jsonrpc": "2.0", "id": 1, "method": "server/discover", "params": {"_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28",
         "io.modelcontextprotocol/clientCapabilities": {},
-        "io.modelcontextprotocol/clientInfo": {"name": "ai-robot-server", "version": "0.1.0"}
+        "io.modelcontextprotocol/clientInfo": {"name": "ai-cloud", "version": "0.1.0"}
       }}}
     }},
-    {"from": "robot", "message": {
-      "type": "mcp", "id": "r2", "reply_to": "c2",
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 1, "reply_to": 1,
       "payload": {"jsonrpc": "2.0", "id": 1, "result": {
         "resultType": "complete",
         "supportedVersions": ["2026-07-28"],
         "capabilities": {"tools": {"listChanged": true}},
         "ttlMs": 60000, "cacheScope": "private",
-        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.1.0"}}
+        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.4.0"}}
       }}
     }},
     {"from": "cloud", "message": {
-      "type": "mcp", "id": "c3",
+      "type": "mcp", "seq": 2,
       "payload": {"jsonrpc": "2.0", "id": 2, "method": "subscriptions/listen", "params": {
         "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
         "notifications": {"toolsListChanged": true}
       }}
     }},
-    {"from": "robot", "message": {
-      "type": "mcp", "id": "r3", "reply_to": "c3",
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 2, "reply_to": 2,
       "payload": {"jsonrpc": "2.0", "method": "notifications/subscriptions/acknowledged", "params": {
         "_meta": {"io.modelcontextprotocol/subscriptionId": 2},
         "notifications": {"toolsListChanged": true}
       }}
     }},
     {"from": "cloud", "message": {
-      "type": "mcp", "id": "c4",
+      "type": "mcp", "seq": 3,
       "payload": {"jsonrpc": "2.0", "id": 3, "method": "tools/list", "params": {"_meta": {
         "io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}
       }}}
     }},
-    {"from": "robot", "message": {
-      "type": "mcp", "id": "r4", "reply_to": "c4",
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 3, "reply_to": 3,
       "payload": {"jsonrpc": "2.0", "id": 3, "result": {
         "resultType": "complete",
         "tools": [{
@@ -84,66 +86,69 @@
             "properties": {"showing": {"type": "string", "description": "The expression the face shows now"}},
             "required": ["showing"]
           },
-          "_meta": {"ai-robot/safety": "informational", "ai-robot/version": 1}
+          "_meta": {"ai-platform/safety": "informational", "ai-platform/version": 1}
         }],
         "ttlMs": 60000, "cacheScope": "private",
-        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.1.0"}}
+        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.4.0"}}
       }}
     }},
     {"from": "cloud", "message": {
-      "type": "mcp", "id": "c5",
+      "type": "mcp", "seq": 4,
       "payload": {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {
         "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
         "name": "screen.show_expression", "arguments": {"expression": "happy", "seconds": 3}
       }}
     }},
-    {"from": "robot", "message": {
-      "type": "mcp", "id": "r5", "reply_to": "c5",
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 4, "reply_to": 4,
       "payload": {"jsonrpc": "2.0", "id": 4, "result": {
         "resultType": "complete",
         "content": [{"type": "text", "text": "{\"showing\": \"happy\"}"}],
         "structuredContent": {"showing": "happy"},
         "isError": false,
-        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.1.0"}}
+        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.4.0"}}
       }}
     }},
     {"from": "cloud", "message": {
-      "type": "mcp", "id": "c6",
+      "type": "mcp", "seq": 5,
       "payload": {"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {
         "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
         "name": "screen.show_expression", "arguments": {"expression": "grumpy"}
       }}
     }},
-    {"from": "robot", "message": {
-      "type": "mcp", "id": "r6", "reply_to": "c6",
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 5, "reply_to": 5,
       "payload": {"jsonrpc": "2.0", "id": 5, "result": {
         "resultType": "complete",
         "content": [{"type": "text", "text": "invalid arguments: expression: 'grumpy' is not one of ['neutral', 'happy', 'sad', 'surprised']"}],
         "isError": true,
-        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.1.0"}}
+        "_meta": {"io.modelcontextprotocol/serverInfo": {"name": "ai-robot", "version": "0.4.0"}}
       }}
     }},
-    {"from": "robot", "message": {
-      "type": "event", "id": "r7", "name": "screen.touched", "time": 1792130412.8,
+    {"from": "device", "message": {
+      "type": "event", "seq": 6, "name": "screen.touched", "time": "2026-10-28T03:20:12.800Z",
       "data": {"x": 0.42, "y": 0.61}
     }},
+    {"from": "device", "message": {"type": "ping", "received": 5}},
+    {"from": "cloud", "message": {"type": "pong", "received": 6}},
     {"from": "cloud", "message": {
-      "type": "mcp", "id": "c7",
+      "type": "mcp", "seq": 6,
       "payload": {"jsonrpc": "2.0", "id": 6, "method": "tools/call", "params": {
         "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
         "name": "motion.dance", "arguments": {}
       }}
     }},
-    {"from": "robot", "message": {
-      "type": "mcp", "id": "r8", "reply_to": "c7",
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 7, "reply_to": 6,
       "payload": {"jsonrpc": "2.0", "id": 6, "error": {"code": -32602, "message": "Unknown tool: motion.dance"}}
     }},
-    {"from": "robot", "message": {
-      "type": "mcp", "id": "r9",
+    {"from": "device", "message": {"type": "device.changed", "seq": 8, "allowed_classes": ["informational"]}},
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 9,
       "payload": {"jsonrpc": "2.0", "method": "notifications/tools/list_changed", "params": {
         "_meta": {"io.modelcontextprotocol/subscriptionId": 2}
       }}
     }},
-    {"from": "robot", "message": {"type": "bye", "id": "r10", "reason": "stopping"}}
+    {"from": "device", "message": {"type": "bye", "reason": "stopping"}}
   ]
 }
