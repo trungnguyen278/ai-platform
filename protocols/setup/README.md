@@ -14,7 +14,7 @@ Version **2.0**:
 - **2.0** speaks of devices: `device` in `info`, `device-registration+jwt`, and the labels `ai-platform/setup/2`. The challenge registers the device into a home ([ADR-0005](../../docs/decisions/0005-homes.md)). `configure` gives the device its first languages and time zone ([ADR-0002](../../docs/decisions/0002-languages.md)). Messages are numbered, `seq`, as in the cloud link 3.0 ([ADR-0004](../../docs/decisions/0004-conventions.md)).
 - 1.0 was the robot's, as ai-robot's ADR-0015 decided.
 
-> **Implemented:** by no side yet. The robot implements 1.0 ([`setup/v1.0`](https://github.com/trungnguyen278/ai-platform/tree/setup/v1.0/protocols/setup)).
+> **Implemented:** by the robot ([ai-robot#34](https://github.com/trungnguyen278/ai-robot/pull/34)). The app and the cloud's side, not yet.
 
 ## How it goes
 
