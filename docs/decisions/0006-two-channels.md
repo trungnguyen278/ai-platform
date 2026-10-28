@@ -1,6 +1,6 @@
 # 0006 — The cloud link in two channels: control always on, media only to talk
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-28
 - **Revised:** 2026-10-28: a conversation's own messages stay in its room, with its audio; the control channel pings on its own, and its sessions resume.
 
