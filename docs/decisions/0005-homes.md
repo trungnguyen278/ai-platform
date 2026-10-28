@@ -2,6 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-10-28
+- **Revised:** 2026-10-28: the challenge that a device signs at set-up carries the home, as set-up 2.0 specifies.
 
 ## Context
 
@@ -24,7 +25,7 @@
 1. **A home owns devices.** People are its members:
    - an account with a role: one owner, any number of admins and members;
    - or a profile without an account, for someone who uses the device but never signs in, such as a grandparent or a guest.
-2. **Set-up registers a device into a home**, which the app chooses, by a member allowed to add devices (the owner or an admin). The registration names the home, from set-up 2.0.
+2. **Set-up registers a device into a home**, which the app chooses, by a member allowed to add devices (the owner or an admin). From set-up 2.0, the cloud issues the challenge that the device signs for that home, so the registration binds the device into it. The device itself never needs to know its home.
 3. **A home has a time zone and default languages** ([ADR-0002](0002-languages.md), [ADR-0004](0004-conventions.md)). A device's own settings can differ, such as its languages.
 4. **What the cloud keeps belongs to the home, or to a person in it**: memories, reminders, conversations.
    - Deleting a person, or the home, deletes what is theirs (PRIV-4).
@@ -49,7 +50,7 @@
   - set-up and the app gain a choice of home, even when there is only one;
   - roles and invitations are to be built from the start.
 - Follow-up:
-  - set-up 2.0: the registration names the home, alongside ADR-0001's rename to devices;
+  - set-up 2.0: the registration into a home, alongside ADR-0001's rename to devices;
   - the app's API: homes, members, invitations and roles ([ADR-0004](0004-conventions.md));
   - in the cloud, the `accounts` module owns homes and memberships, and every module's growing tables carry `home_id`;
   - what the cloud may keep for a profile without an account, settled with the law on personal data (ai-cloud ADR-0006) before the first real users.
