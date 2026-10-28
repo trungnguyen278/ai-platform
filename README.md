@@ -39,6 +39,7 @@ Each repository pins this one as a git submodule at `platform/`. A pin moves in 
   - A major version changes or removes something.
 - The two sides of a link say their versions when they meet, and keep to what both support, so that a device and the cloud need not move together.
 - The commit that publishes a version is tagged `<protocol>/v<major>.<minor>`, such as `cloud/v2.2`.
+- How long the cloud keeps speaking each version, and why the update path never breaks: [ADR-0003](docs/decisions/0003-compatibility.md).
 
 ## Documentation
 
