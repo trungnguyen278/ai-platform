@@ -1,0 +1,24 @@
+# ---- OS / editors ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+*.code-workspace
+
+# ---- Secrets ----
+.env
+.env.*
+*.pem
+*.key
+
+# ---- Claude Code: local settings (skills in .claude/skills/ are shared) ----
+.claude/settings.json
+.claude/settings.local.json
+CLAUDE.local.md
+
+# ---- Tools ----
+__pycache__/
+.venv/
