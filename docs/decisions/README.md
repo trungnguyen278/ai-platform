@@ -14,6 +14,7 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0004](0004-conventions.md) | Conventions: one way to write identifiers, time, errors and APIs | Accepted | 2026-10-28 |
 | [0005](0005-homes.md) | Homes: a device belongs to a home, and people are its members | Accepted | 2026-10-28 |
 | [0006](0006-two-channels.md) | The cloud link in two channels: control always on, media only to talk | Accepted | 2026-10-28 |
+| [0007](0007-catalogs.md) | Catalogs: Unicode MessageFormat 2, one JSON file per language | Proposed | 2026-10-30 |
 
 ## Earlier decisions, in ai-robot
 
