@@ -2,7 +2,7 @@
 
 How the owner's app sets up a device: its Wi-Fi network, its first settings, and its registration into a home on `ai-cloud`. A robot is the first kind of device ([ADR-0001](../../docs/decisions/0001-repositories.md), decision 5).
 - On the robot (ai-robot's `software/`), it is the `setup` module, with its `setup_link` and `network` ports.
-- The app (`ai-app`) does not exist yet.
+- In the app, [ai-app](https://github.com/trungnguyen278/ai-app), it is not built yet.
 
 Version **2.0**:
 - It follows ai-robot's [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), accepted, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) into a home ([ADR-0005](../../docs/decisions/0005-homes.md)).

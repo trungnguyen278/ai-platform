@@ -6,7 +6,7 @@ What the project's AI products share: the protocols between them, and the decisi
 |---|---|
 | [ai-robot](https://github.com/trungnguyen278/ai-robot) | The robot: a mobile robot with an expressive face, the first device |
 | [ai-cloud](https://github.com/trungnguyen278/ai-cloud) | The cloud side: the devices' AI, their tokens, set-up's registration, updates |
-| `ai-app` | The owner's app: set-up, settings, remote control (not created yet) |
+| [ai-app](https://github.com/trungnguyen278/ai-app) | The owner's app: set-up, settings, remote control |
 | ai-platform | This repository |
 
 ## Protocols
