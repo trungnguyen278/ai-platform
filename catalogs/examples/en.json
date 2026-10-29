@@ -1,0 +1,5 @@
+{
+  "devices.count": ".input {$count :number}\n.match $count\none {{{$count} device}}\n* {{{$count} devices}}",
+  "devices.empty": "No device yet.",
+  "greeting.hello": ".input {$relation :string}\n{{Hello!}}"
+}

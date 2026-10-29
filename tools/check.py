@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Check the protocols: every schema is valid JSON Schema, every example follows its
 schema, and a new minor version still accepts the examples of the version before it.
+Check the catalogs too: their schema, their examples, and the copy of MF2's test suite.
 
     python tools/check.py
 
@@ -21,6 +22,7 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 PROTOCOLS = ROOT / "protocols"
+CATALOGS = ROOT / "catalogs"
 VERSION = re.compile(r"version (\d+)\.(\d+)")  # in each schema's title (CONTRIBUTING.md, rule 3)
 TAG = re.compile(r"^(?P<name>[a-z]+)/v(?P<major>\d+)\.(?P<minor>\d+)$")
 
@@ -74,8 +76,41 @@ def previous_examples(name: str, major: int, minor: int) -> tuple[str, dict[str,
     }
 
 
+def check_catalogs() -> list[str]:
+    """Problems with the catalogs: the example catalogs follow their schema and name only
+    IDs that the English source has, and every file of MF2's test suite is JSON."""
+    schema = json.loads((CATALOGS / "schema.json").read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema)
+    examples = {
+        path.stem: json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted((CATALOGS / "examples").glob("*.json"))
+    }
+    problems = []
+    for tag, catalog in examples.items():
+        for error in validator.iter_errors(catalog):
+            problems.append(f"catalogs/examples/{tag}.json: {error.message}")
+    source = examples.get("en")
+    if source is None:
+        problems.append("catalogs/examples: no en.json, the source")
+    else:
+        for tag, catalog in examples.items():
+            for key in sorted(set(catalog) - set(source)):
+                problems.append(f"catalogs/examples/{tag}.json: {key} is not in en.json")
+    tests = sorted((CATALOGS / "mf2-tests" / "tests").rglob("*.json"))
+    for path in tests:
+        try:
+            json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            problems.append(f"{path.relative_to(ROOT).as_posix()}: {error}")
+    if not tests:
+        problems.append("catalogs/mf2-tests: no tests")
+    print(f"catalogs: {len(examples)} examples, {len(tests)} files of MF2's tests")
+    return problems
+
+
 def main() -> int:
-    problems: list[str] = []
+    problems: list[str] = check_catalogs()
     for folder in sorted(path for path in PROTOCOLS.iterdir() if path.is_dir()):
         name = folder.name
         schema = json.loads((folder / "schema.json").read_text(encoding="utf-8"))

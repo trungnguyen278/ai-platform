@@ -1,0 +1,5 @@
+{
+  "devices.count": ".input {$count :number}\n{{{$count} thiết bị}}",
+  "devices.empty": "Chưa có thiết bị nào.",
+  "greeting.hello": ".input {$relation :string}\n.match $relation\nelder_male {{Chào anh!}}\nelder_female {{Chào chị!}}\nyounger {{Chào em!}}\n* {{Chào bạn!}}"
+}
