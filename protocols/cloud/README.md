@@ -19,7 +19,7 @@ Version **3.0**:
 - 2.2 had the cloud end the user's speech; 2.1 added the token endpoint; 2.0 carried everything in a LiveKit room; 1.0 carried everything over one WebSocket ([ai-robot ADR-0007](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0007-cloud-link-transport.md), superseded).
 - No cloud ever spoke 1.x or 2.x, and no device left the workshop with them. The cloud speaks 3.0 only, and ADR-0003's periods start with it.
 
-> **Implemented:** by no side yet. The robot implements 2.2 ([`cloud/v2.2`](https://github.com/trungnguyen278/ai-platform/tree/cloud/v2.2/protocols/cloud)).
+> **Implemented:** the control channel, by the robot ([ai-robot#36](https://github.com/trungnguyen278/ai-robot/pull/36)). Conversations, and the cloud's side, not yet.
 
 ## Two channels
 
