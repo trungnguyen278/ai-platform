@@ -1,6 +1,6 @@
 # 0007 — Catalogs: Unicode MessageFormat 2, one JSON file per language
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-30
 
 ## Context
@@ -28,9 +28,9 @@
   | gettext (PO files) | The oldest and most widely supported. A variant beyond plurals is another message, with a context chosen by the code. | Lingui reads PO, with ICU MessageFormat 1 inside its messages | The standard library, and Babel (2.18.0, 2026-02-01) |
   | ICU MessageFormat 1 | The most used in JavaScript | FormatJS (released 2026-10-27) | PyICU only (2.17, 2026-10-23), built from source against ICU's C++ library |
   | Fluent | Mozilla's. Built for languages that need more variants than English. | `@fluent/bundle`: last release 2025-07-18 | `fluent.runtime`: last release 2023-09-19 |
-  | MessageFormat 2 (MF2) | Unicode's standard, Stable since CLDR 47 (2025). In ICU 78.3 (2026-03-17), Java's core API is a draft and C++ is in preview. `Intl.MessageFormat` is at TC39's stage 1. | `messageformat` 4.1.0 (2026-10-12), the reference implementation. Its project also converts Fluent and MessageFormat 1 into MF2. | `messageformat2` 0.1.1 (2025-12-03): MIT, one maintainer, 47 commits in the past year |
+  | MessageFormat 2 (MF2) | Unicode's standard, Stable since CLDR 47 (2025). In ICU 78.3 (2026-03-17), Java's core API is a draft and C++ is in preview. `Intl.MessageFormat` is at TC39's stage 1. | `messageformat` 4.1.0 (2026-10-12), the reference implementation: it passes all 434 of the working group's tests that apply. Its project also converts Fluent and MessageFormat 1 into MF2. | `messageformat2` 0.1.1 (2025-12-03): MIT, one maintainer, 47 commits in the past year. It passes 294 of the 434, and reads the draft's `.match {$x}`, not the specification's `.match $x`. |
 
-- **MF2's working group publishes a test suite**, in JSON: syntax, the selection of variants, fallbacks, and the functions.
+- **MF2's working group publishes a test suite**, in JSON: syntax, the selection of variants, fallbacks, and the functions. The counts above come from it, at its commit of 2026-08-31, without the 28 tests that need its own `:test:` functions (measured 2026-10-30).
 - **Translation platforms:** Weblate (2026.10.1) supports PO, Fluent and several JSON formats, but not MF2.
 - **Hermes** implements part of `Intl`. FormatJS notes that React Native may need polyfills for `Intl.PluralRules` and `Intl.NumberFormat`.
 
@@ -50,7 +50,7 @@
    The rest of the component calls only that module, so the library can change without touching a message.
 4. **CI checks every component's catalogs:**
    - every message parses as MF2;
-   - each translation uses the same variables as its English source;
+   - a translation uses no variable that its English source does not name. The English source names every variable the code passes, even one that only another language uses, such as the relation that Vietnamese forms of address need;
    - an ID missing from English is an error, and one missing from another language a warning (ADR-0002);
    - the pinned library passes the working group's tests for the syntax and the functions the component uses.
 5. **Formatting falls back message by message** (ADR-0002): along the owner's languages, then to English.
@@ -63,7 +63,7 @@
 |---|---|
 | gettext | Mature everywhere, and Python reads it without a library. But a variant beyond plurals is another message chosen by the code, so the code would have to know a language's grammar, such as Vietnamese forms of address. In JavaScript, Lingui puts ICU MessageFormat 1 inside PO files, which Python's gettext does not format. |
 | ICU MessageFormat 1 | The most used in JavaScript. In Python only PyICU formats it, built from source with ICU's C++ library. MF2 is Unicode's successor to it. |
-| Fluent | Built for exactly the variants Vietnamese needs. But its Python runtime's last release was in 2023, and its JavaScript one in 2025-07, while Unicode's work went into MF2. |
+| Fluent | The strongest alternative. It is built for the variants Vietnamese needs, its syntax has been stable since its 1.0, and on 2026-10-30 its runtimes handled them in both Python and JavaScript. But its runtimes are rarely released (Python in 2023, JavaScript in 2025-07), and Unicode's standard is MF2. The owner chose MF2, and the work of bringing Python's library up to it. |
 | Each platform's own format: Android's XML, iOS's strings, gettext, JSON | Four formats with four sets of rules, where ADR-0002 asks for one. |
 | MF2 messages in the resource syntax of `@messageformat/resource` | It is not a Unicode standard yet, and only JavaScript reads it. Every runtime reads JSON. |
 
@@ -75,11 +75,12 @@
   - a language's variants stay with its catalog, so adding a language stays data;
   - the JavaScript side is mature.
 - Negative / accepted trade-offs:
-  - Python's library is young (0.1.1, one maintainer). It is pinned, wrapped by each component, and held to the working group's tests. Should it stall, the wrapper changes library: to ICU's, through PyICU, once ICU's C++ implementation leaves its preview, or to a fork with fixes;
+  - Python's library is behind the specification: it does not read `.match $x`, which plurals and variants need. Before a Python component uses catalogs, the library is brought up to the specification, measured by the working group's tests. The changes go to the library itself, or to a fork if its maintainer does not take them. Each component wraps the library, so that work touches no message;
   - translation platforms do not check MF2 yet. CI does, and translators see MF2's syntax;
   - the app may need `Intl` polyfills on Hermes.
 - Follow-up:
   - each component's catalog module, first in ai-app's skeleton;
+  - MF2's Python library brought up to the specification, before the robot's software or the cloud uses catalogs;
   - the robot's English texts moved into catalogs (ADR-0002);
   - a translation platform, once other people translate.
 
