@@ -24,6 +24,14 @@ Each protocol folder holds:
 
 The cloud link and set-up came from ai-robot's `protocol/`, with their history, on 2026-10-28. The protocols inside one product stay with it, such as the robot's screen and body protocols. Both speak of devices, the cloud link from its version 3.0 and set-up from its version 2.0 ([ADR-0001](docs/decisions/0001-repositories.md), decision 5).
 
+## Catalogs
+
+[`catalogs/`](catalogs/README.md) says how every component writes the texts people see, in every language ([ADR-0007](docs/decisions/0007-catalogs.md)):
+- the files, the message IDs, and the rules for messages, in Unicode MessageFormat 2;
+- the checks that each component's CI runs;
+- an example in English and Vietnamese;
+- MF2's test suite, which each component's library runs.
+
 ## Decisions
 
 [`docs/decisions/`](docs/decisions/README.md) holds every decision that spans repositories. A repository's own decisions stay in it. The decisions made before this repository existed are ai-robot's ADR-0001 to ADR-0017, which the index links.

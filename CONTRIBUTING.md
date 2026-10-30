@@ -65,3 +65,5 @@ What a protocol or a decision relies on (an RFC, a Bluetooth specification, a pl
 ## License
 
 By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE).
+
+Content from others keeps its own licence, and is listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
