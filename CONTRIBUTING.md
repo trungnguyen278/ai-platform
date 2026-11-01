@@ -32,7 +32,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<sc
 | `docs` | Decisions, wording, examples or notes that change nothing a side does |
 | `chore` | Tooling, configuration, CI, housekeeping |
 
-The scope is the protocol, `cloud` or `setup`, or `decisions`, `tools` and `ci`.
+The scope is the protocol, `cloud`, `setup` or `app`, or `decisions`, `tools` and `ci`.
 
 Example: `feat(cloud): let the cloud caption its answers`
 

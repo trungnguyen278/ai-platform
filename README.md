@@ -15,6 +15,7 @@ What the project's AI products share: the protocols between them, and the decisi
 |---|---|---|---|
 | [Cloud link](protocols/cloud/README.md) | A device and ai-cloud | 3.0 | [ADR-0006](docs/decisions/0006-two-channels.md); ai-robot ADR-0008, ADR-0009, ADR-0010, ADR-0012 |
 | [Set-up](protocols/setup/README.md) | The owner's app, a device and ai-cloud | 2.0 | [ADR-0005](docs/decisions/0005-homes.md); ai-robot ADR-0015 |
+| [App API](protocols/app/README.md) | The owner's app and ai-cloud | 1.0 | [ADR-0008](docs/decisions/0008-sign-in.md), [ADR-0004](docs/decisions/0004-conventions.md), [ADR-0005](docs/decisions/0005-homes.md) |
 
 Each protocol folder holds:
 - `README.md`, the specification: messages, sequences, errors, limits, security;

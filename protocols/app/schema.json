@@ -1,0 +1,606 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "The app API, ai-app and ai-cloud, version 1.0",
+  "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "instant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$",
+      "description": "RFC 3339, in UTC"
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+      "maxLength": 35,
+      "description": "A BCP 47 tag"
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/language"
+      },
+      "maxItems": 10,
+      "uniqueItems": true,
+      "description": "Most preferred first (ADR-0002)"
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "email": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 254,
+      "pattern": "^[^@\\s]+@[^@\\s]+$"
+    },
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "description": "An ID, access or refresh token: opaque to the app, except the ID token, which the provider made"
+    },
+    "nonce": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$",
+      "description": "32 random bytes, base64url without padding"
+    },
+    "client_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "provider": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+      "description": "google or apple; development in the development environment. Others may come with later versions."
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "authorization_code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "description": "Sign in with Apple's authorization code, which comes with Apple's ID token only"
+    },
+    "token_exchange_request": {
+      "description": "Form fields of POST /app/token, exchanging a provider's ID token (README, The exchange)",
+      "type": "object",
+      "required": [
+        "grant_type",
+        "subject_token",
+        "subject_token_type",
+        "client_id"
+      ],
+      "properties": {
+        "grant_type": {
+          "const": "urn:ietf:params:oauth:grant-type:token-exchange"
+        },
+        "subject_token": {
+          "$ref": "#/$defs/token"
+        },
+        "subject_token_type": {
+          "const": "urn:ietf:params:oauth:token-type:id_token"
+        },
+        "client_id": {
+          "$ref": "#/$defs/client_id"
+        },
+        "session_label": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "authorization_code": {
+          "$ref": "#/$defs/authorization_code"
+        }
+      }
+    },
+    "refresh_request": {
+      "description": "Form fields of POST /app/token, refreshing (README, Refreshing)",
+      "type": "object",
+      "required": [
+        "grant_type",
+        "refresh_token",
+        "client_id"
+      ],
+      "properties": {
+        "grant_type": {
+          "const": "refresh_token"
+        },
+        "refresh_token": {
+          "$ref": "#/$defs/token"
+        },
+        "client_id": {
+          "$ref": "#/$defs/client_id"
+        }
+      }
+    },
+    "revoke_request": {
+      "description": "Form fields of POST /app/revoke (README, Signing out)",
+      "type": "object",
+      "required": [
+        "token",
+        "client_id"
+      ],
+      "properties": {
+        "token": {
+          "$ref": "#/$defs/token"
+        },
+        "token_type_hint": {
+          "enum": [
+            "refresh_token",
+            "access_token"
+          ]
+        },
+        "client_id": {
+          "$ref": "#/$defs/client_id"
+        }
+      }
+    },
+    "account_update": {
+      "description": "PATCH /app/v1/account: the fields to change (README, Changing it)",
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "display_name": {
+          "$ref": "#/$defs/display_name"
+        },
+        "languages": {
+          "$ref": "#/$defs/languages"
+        }
+      }
+    },
+    "id_token_request": {
+      "description": "An ID token just signed in: to link an identity (POST /app/v1/account/identities), or to delete the account (POST /app/v1/account:delete). README, Identities and Deleting it",
+      "type": "object",
+      "required": [
+        "id_token"
+      ],
+      "properties": {
+        "id_token": {
+          "$ref": "#/$defs/token"
+        },
+        "authorization_code": {
+          "$ref": "#/$defs/authorization_code"
+        }
+      }
+    },
+    "development_id_token_request": {
+      "description": "POST /app/v1/development/id-tokens, in the development environment only (README, Development)",
+      "type": "object",
+      "required": [
+        "nonce",
+        "display_name"
+      ],
+      "properties": {
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "display_name": {
+          "$ref": "#/$defs/display_name"
+        },
+        "email": {
+          "$ref": "#/$defs/email"
+        }
+      }
+    },
+    "nonce_response": {
+      "description": "What POST /app/v1/nonces answers (README, The nonce)",
+      "type": "object",
+      "required": [
+        "nonce",
+        "expires_in"
+      ],
+      "properties": {
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "expires_in": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Seconds"
+        }
+      }
+    },
+    "token_response": {
+      "description": "What POST /app/token answers to an exchange or a refresh (README, The exchange)",
+      "type": "object",
+      "required": [
+        "access_token",
+        "token_type",
+        "expires_in",
+        "refresh_token"
+      ],
+      "properties": {
+        "access_token": {
+          "$ref": "#/$defs/token"
+        },
+        "issued_token_type": {
+          "const": "urn:ietf:params:oauth:token-type:access_token",
+          "description": "In the answer to an exchange (RFC 8693)"
+        },
+        "token_type": {
+          "type": "string",
+          "pattern": "^[Bb][Ee][Aa][Rr][Ee][Rr]$",
+          "description": "Bearer, in any case (RFC 6749)"
+        },
+        "expires_in": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400,
+          "description": "Seconds"
+        },
+        "refresh_token": {
+          "$ref": "#/$defs/token"
+        }
+      }
+    },
+    "oauth_error": {
+      "description": "What the OAuth endpoints answer to a request they refuse (README, Errors)",
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/code",
+          "description": "invalid_request, invalid_client, invalid_grant or unsupported_grant_type"
+        },
+        "error_description": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "identity": {
+      "description": "A way to sign in to an account (README, The account)",
+      "type": "object",
+      "required": [
+        "id",
+        "provider",
+        "create_time"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "email": {
+          "$ref": "#/$defs/email"
+        },
+        "create_time": {
+          "$ref": "#/$defs/instant"
+        }
+      }
+    },
+    "account": {
+      "description": "What GET and PATCH /app/v1/account answer (README, The account)",
+      "type": "object",
+      "required": [
+        "id",
+        "display_name",
+        "languages",
+        "identities",
+        "create_time",
+        "etag"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "display_name": {
+          "$ref": "#/$defs/display_name"
+        },
+        "email": {
+          "$ref": "#/$defs/email"
+        },
+        "languages": {
+          "$ref": "#/$defs/languages"
+        },
+        "identities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/identity"
+          },
+          "minItems": 1,
+          "maxItems": 16
+        },
+        "create_time": {
+          "$ref": "#/$defs/instant"
+        },
+        "etag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    },
+    "session": {
+      "description": "One app, on one phone, signed in (README, Sessions)",
+      "type": "object",
+      "required": [
+        "id",
+        "create_time",
+        "last_use_time",
+        "current"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "create_time": {
+          "$ref": "#/$defs/instant"
+        },
+        "last_use_time": {
+          "$ref": "#/$defs/instant"
+        },
+        "current": {
+          "type": "boolean"
+        }
+      }
+    },
+    "session_list": {
+      "description": "What GET /app/v1/account/sessions answers: a page (README, Sessions)",
+      "type": "object",
+      "required": [
+        "sessions",
+        "next_page_token"
+      ],
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/session"
+          },
+          "maxItems": 50
+        },
+        "next_page_token": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "problem": {
+      "description": "Problem Details (RFC 9457), as the API answers an error (README, Errors)",
+      "type": "object",
+      "required": [
+        "type",
+        "title",
+        "status"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "pattern": "^(about:blank|/app/v[0-9]+/problems/[a-z][a-z0-9_]{0,63})$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 400,
+          "maximum": 599
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "development_id_token_response": {
+      "description": "What POST /app/v1/development/id-tokens answers (README, Development)",
+      "type": "object",
+      "required": [
+        "id_token"
+      ],
+      "properties": {
+        "id_token": {
+          "$ref": "#/$defs/token"
+        }
+      }
+    },
+    "from_app": {
+      "description": "A request's body, told apart by its fields",
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "grant_type"
+            ],
+            "properties": {
+              "grant_type": {
+                "const": "urn:ietf:params:oauth:grant-type:token-exchange"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/token_exchange_request"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "grant_type"
+            ],
+            "properties": {
+              "grant_type": {
+                "const": "refresh_token"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/refresh_request"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "token"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/revoke_request"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "id_token"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/id_token_request"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "nonce"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/development_id_token_request"
+          }
+        },
+        {
+          "if": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "grant_type"
+                  ]
+                },
+                {
+                  "required": [
+                    "token"
+                  ]
+                },
+                {
+                  "required": [
+                    "id_token"
+                  ]
+                },
+                {
+                  "required": [
+                    "nonce"
+                  ]
+                }
+              ]
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/account_update"
+          }
+        }
+      ]
+    },
+    "from_cloud": {
+      "description": "A response's body, told apart by its fields",
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "access_token"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/token_response"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "nonce"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/nonce_response"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "error"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/oauth_error"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type",
+              "status"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/problem"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "sessions"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/session_list"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "identities"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/account"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "provider"
+            ],
+            "not": {
+              "required": [
+                "identities"
+              ]
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/identity"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "id_token"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/development_id_token_response"
+          }
+        }
+      ]
+    }
+  }
+}

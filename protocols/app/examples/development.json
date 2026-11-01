@@ -1,0 +1,55 @@
+{
+  "description": "In the development environment, the app signs a test person in, without Google or Apple.",
+  "messages": [
+    {
+      "from": "app",
+      "request": "POST /app/v1/nonces"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "nonce": "2r-tHb7O8xo1FwnwZIpA8aUlvSLV_mOprWQ3d70JXq0",
+        "expires_in": 300
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/development/id-tokens",
+      "message": {
+        "nonce": "2r-tHb7O8xo1FwnwZIpA8aUlvSLV_mOprWQ3d70JXq0",
+        "display_name": "Test",
+        "email": "test@example.com"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUvYXBwL2RldmVsb3BtZW50IiwiYXVkIjoiYWktYXBwIiwic3ViIjoidGVzdEBleGFtcGxlLmNvbSIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsIm5hbWUiOiJUZXN0Iiwibm9uY2UiOiIyci10SGI3Tzh4bzFGd253WklwQThhVWx2U0xWX21PcHJXUTNkNzBKWHEwIiwiaWF0IjoxNzkzNDMzNTkwLCJleHAiOjE3OTM0MzQxOTB9.bm90IGEgc2lnbmF0dXJlOiBhbiBleGFtcGxl"
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/token",
+      "message": {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUvYXBwL2RldmVsb3BtZW50IiwiYXVkIjoiYWktYXBwIiwic3ViIjoidGVzdEBleGFtcGxlLmNvbSIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsIm5hbWUiOiJUZXN0Iiwibm9uY2UiOiIyci10SGI3Tzh4bzFGd253WklwQThhVWx2U0xWX21PcHJXUTNkNzBKWHEwIiwiaWF0IjoxNzkzNDMzNTkwLCJleHAiOjE3OTM0MzQxOTB9.bm90IGEgc2lnbmF0dXJlOiBhbiBleGFtcGxl",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+        "client_id": "ai-app",
+        "session_label": "Emulator"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "access_token": "WXL6zgho81YLjxZl3GfZp2DIKMgL9A77UVUubxJQLDo",
+        "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "token_type": "Bearer",
+        "expires_in": 600,
+        "refresh_token": "aztRBQpNUNKReGgzlOOdN4tA7B1yjTOzM47PDqNzzko"
+      }
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+{
+  "description": "A new owner signs in with Google on an Android phone, and sets their languages. Later the app refreshes, and the old refresh token, presented again, ends the session.",
+  "messages": [
+    {
+      "from": "app",
+      "request": "POST /app/v1/nonces"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "nonce": "2r-tHb7O8xo1FwnwZIpA8aUlvSLV_mOprWQ3d70JXq0",
+        "expires_in": 300
+      }
+    },
+    {
+      "note": "The app gives the nonce to Credential Manager, which gives back Google's ID token."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/token",
+      "message": {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhdWQiOiIwMDAwMDAwMDAwMDAtZXhhbXBsZS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwMDAwMDAwMDAwMDAwMDAwMDAwMSIsImVtYWlsIjoibGluaEBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiTGluaCIsIm5vbmNlIjoiMnItdEhiN084eG8xRndud1pJcEE4YVVsdlNMVl9tT3ByV1EzZDcwSlhxMCIsImlhdCI6MTc5MzQzMzU5MCwiZXhwIjoxNzkzNDM3MTkwfQ.bm90IGEgc2lnbmF0dXJlOiBhbiBleGFtcGxl",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+        "client_id": "ai-app",
+        "session_label": "Pixel 8"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "access_token": "LmarDRUYfl9MC8JilbQZMOYRflL0oTW1s-AA1j-t-RE",
+        "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "token_type": "Bearer",
+        "expires_in": 600,
+        "refresh_token": "As5zCdcG42GWe66Teh9rKDZ8U1y2ashnl9DMc_yCMfA"
+      }
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/account"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "01a190f9-0000-7a1c-9b2e-4d7f6a1b2c3d",
+        "display_name": "Linh",
+        "email": "linh@example.com",
+        "languages": [],
+        "create_time": "2026-10-31T08:00:00Z",
+        "etag": "W/\"1\"",
+        "identities": [
+          {
+            "id": "01a190f9-000a-7b2d-8c3f-5e8a7b2c3d4e",
+            "provider": "google",
+            "email": "linh@example.com",
+            "create_time": "2026-10-31T08:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "from": "app",
+      "request": "PATCH /app/v1/account",
+      "headers": {
+        "If-Match": "W/\"1\""
+      },
+      "message": {
+        "languages": [
+          "vi",
+          "en"
+        ]
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "01a190f9-0000-7a1c-9b2e-4d7f6a1b2c3d",
+        "display_name": "Linh",
+        "email": "linh@example.com",
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "create_time": "2026-10-31T08:00:00Z",
+        "etag": "W/\"2\"",
+        "identities": [
+          {
+            "id": "01a190f9-000a-7b2d-8c3f-5e8a7b2c3d4e",
+            "provider": "google",
+            "email": "linh@example.com",
+            "create_time": "2026-10-31T08:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "note": "Ten minutes later, the access token has expired."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/token",
+      "message": {
+        "grant_type": "refresh_token",
+        "refresh_token": "As5zCdcG42GWe66Teh9rKDZ8U1y2ashnl9DMc_yCMfA",
+        "client_id": "ai-app"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "access_token": "4454LP0DSjFz0FOTkR1QxC-KL3oWulNjfP7O52z5ASI",
+        "token_type": "Bearer",
+        "expires_in": 600,
+        "refresh_token": "dw_yKRxpwsyQOcRZiUpVPnc2UVMA_zg1XlhqcyJZAGM"
+      }
+    },
+    {
+      "note": "The first refresh token again: a copy of it was stolen, or a request replayed."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/token",
+      "message": {
+        "grant_type": "refresh_token",
+        "refresh_token": "As5zCdcG42GWe66Teh9rKDZ8U1y2ashnl9DMc_yCMfA",
+        "client_id": "ai-app"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 400,
+      "message": {
+        "error": "invalid_grant",
+        "error_description": "refresh token used twice: the session has ended"
+      }
+    }
+  ]
+}
