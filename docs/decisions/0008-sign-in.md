@@ -1,6 +1,6 @@
 # 0008 — Signing in: the cloud's own accounts, reached with Google or Apple
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-31
 
 ## Context
