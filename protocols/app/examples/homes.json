@@ -1,0 +1,515 @@
+{
+  "description": "A person creates a home, adds a profile for a grandparent, and invites a second person, who joins and becomes an admin. The owner cannot delete the home with that person in it, so hands it over and leaves, and the new owner deletes it.",
+  "messages": [
+    {
+      "note": "The owner has signed in, as in sign-in.json, and has no home yet."
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes?page_size=20"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "homes": [],
+        "next_page_token": ""
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes",
+      "headers": {
+        "Idempotency-Key": "\"01a1a06c-1400-75e6-a77f-f2149dbe59d5\""
+      },
+      "message": {
+        "name": "Nhà Linh",
+        "time_zone": "Asia/Ho_Chi_Minh",
+        "languages": [
+          "vi",
+          "en"
+        ]
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "01a1a06c-1400-7ffd-b448-26955bb4d510",
+        "name": "Nhà Linh",
+        "time_zone": "Asia/Ho_Chi_Minh",
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "member_id": "01a1a06c-1400-7375-973f-8d9c68138cc8",
+        "role": "owner",
+        "create_time": "2026-11-03T08:00:00Z",
+        "etag": "W/\"1\""
+      }
+    },
+    {
+      "from": "app",
+      "request": "PATCH /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510",
+      "headers": {
+        "If-Match": "W/\"1\""
+      },
+      "message": {
+        "name": "Nhà của Linh"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "01a1a06c-1400-7ffd-b448-26955bb4d510",
+        "name": "Nhà của Linh",
+        "time_zone": "Asia/Ho_Chi_Minh",
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "member_id": "01a1a06c-1400-7375-973f-8d9c68138cc8",
+        "role": "owner",
+        "create_time": "2026-11-03T08:00:00Z",
+        "etag": "W/\"2\""
+      }
+    },
+    {
+      "note": "The owner adds a profile for a grandparent, who will never sign in."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/members",
+      "headers": {
+        "Idempotency-Key": "\"01a1a06c-1400-7a38-81b9-503d9a6f69b1\""
+      },
+      "message": {
+        "display_name": "Bà"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "01a1a070-a7e0-7f57-8a14-d9e82cf62633",
+        "kind": "profile",
+        "display_name": "Bà",
+        "current": false,
+        "create_time": "2026-11-03T08:05:00Z",
+        "etag": "W/\"1\""
+      }
+    },
+    {
+      "note": "The owner invites a second person."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/invitations"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "01a1a075-3bc0-7f24-afff-ec2f264278ac",
+        "invited_by": "Linh",
+        "create_time": "2026-11-03T08:10:00Z",
+        "expire_time": "2026-11-06T08:10:00Z",
+        "code": "_qkVmTR2PblWSSdl5dzV2U5KeCbtmjs4Pd7HS-vBAx4"
+      }
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/invitations?page_size=20"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "invitations": [
+          {
+            "id": "01a1a075-3bc0-7f24-afff-ec2f264278ac",
+            "invited_by": "Linh",
+            "create_time": "2026-11-03T08:10:00Z",
+            "expire_time": "2026-11-06T08:10:00Z"
+          }
+        ],
+        "next_page_token": ""
+      }
+    },
+    {
+      "note": "The owner makes another one by mistake, and revokes it. Nobody can join with that code."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/invitations"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "01a1a079-cfa0-7c21-9d3e-bbbe497cdfe3",
+        "code": "BQrTxSlguYQ1nxBqFMnSa-mOECnTAvAx763Lye7ZkeE",
+        "invited_by": "Linh",
+        "create_time": "2026-11-03T08:15:00Z",
+        "expire_time": "2026-11-06T08:15:00Z"
+      }
+    },
+    {
+      "from": "app",
+      "request": "DELETE /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/invitations/01a1a079-cfa0-7c21-9d3e-bbbe497cdfe3"
+    },
+    {
+      "from": "cloud",
+      "status": 204
+    },
+    {
+      "note": "The owner shares https://cloud.example/join#_qkVmTR2PblWSSdl5dzV2U5KeCbtmjs4Pd7HS-vBAx4 in a chat. The second person opens it: the phone starts the app, which takes the code from the link's fragment. That person has signed in with an account of their own."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/invitations:lookup",
+      "message": {
+        "code": "_qkVmTR2PblWSSdl5dzV2U5KeCbtmjs4Pd7HS-vBAx4"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "home_name": "Nhà của Linh",
+        "invited_by": "Linh",
+        "expire_time": "2026-11-06T08:10:00Z"
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/invitations:accept",
+      "message": {
+        "code": "_qkVmTR2PblWSSdl5dzV2U5KeCbtmjs4Pd7HS-vBAx4"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "01a1a06c-1400-7ffd-b448-26955bb4d510",
+        "name": "Nhà của Linh",
+        "time_zone": "Asia/Ho_Chi_Minh",
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "member_id": "01a1a087-8b40-78fa-a849-084724ef9500",
+        "role": "member",
+        "create_time": "2026-11-03T08:00:00Z",
+        "etag": "W/\"2\""
+      }
+    },
+    {
+      "note": "That answer was lost, so the app tries again. The person is in the home already."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/invitations:accept",
+      "message": {
+        "code": "_qkVmTR2PblWSSdl5dzV2U5KeCbtmjs4Pd7HS-vBAx4"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "01a1a06c-1400-7ffd-b448-26955bb4d510",
+        "name": "Nhà của Linh",
+        "time_zone": "Asia/Ho_Chi_Minh",
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "member_id": "01a1a087-8b40-78fa-a849-084724ef9500",
+        "role": "member",
+        "create_time": "2026-11-03T08:00:00Z",
+        "etag": "W/\"2\""
+      }
+    },
+    {
+      "note": "Someone else, whom the link reached, tries the same code."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/invitations:accept",
+      "message": {
+        "code": "_qkVmTR2PblWSSdl5dzV2U5KeCbtmjs4Pd7HS-vBAx4"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 404,
+      "message": {
+        "type": "/app/v1/problems/invitation_invalid",
+        "title": "Invitation invalid",
+        "status": 404,
+        "detail": "This code cannot be used."
+      }
+    },
+    {
+      "note": "The owner sees who is in the home, and makes the second person an admin."
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/members?page_size=20"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "members": [
+          {
+            "id": "01a1a06c-1400-7375-973f-8d9c68138cc8",
+            "kind": "account",
+            "display_name": "Linh",
+            "role": "owner",
+            "current": true,
+            "create_time": "2026-11-03T08:00:00Z",
+            "etag": "W/\"1\""
+          },
+          {
+            "id": "01a1a070-a7e0-7f57-8a14-d9e82cf62633",
+            "kind": "profile",
+            "display_name": "Bà",
+            "current": false,
+            "create_time": "2026-11-03T08:05:00Z",
+            "etag": "W/\"1\""
+          },
+          {
+            "id": "01a1a087-8b40-78fa-a849-084724ef9500",
+            "kind": "account",
+            "display_name": "Minh",
+            "role": "member",
+            "current": false,
+            "create_time": "2026-11-03T08:30:00Z",
+            "etag": "W/\"1\""
+          }
+        ],
+        "next_page_token": ""
+      }
+    },
+    {
+      "from": "app",
+      "request": "PATCH /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/members/01a1a087-8b40-78fa-a849-084724ef9500",
+      "headers": {
+        "If-Match": "W/\"1\""
+      },
+      "message": {
+        "role": "admin",
+        "display_name": "Anh Minh"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "01a1a087-8b40-78fa-a849-084724ef9500",
+        "kind": "account",
+        "display_name": "Anh Minh",
+        "role": "admin",
+        "current": false,
+        "create_time": "2026-11-03T08:30:00Z",
+        "etag": "W/\"2\""
+      }
+    },
+    {
+      "note": "The new admin tries to remove the owner."
+    },
+    {
+      "from": "app",
+      "request": "DELETE /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/members/01a1a06c-1400-7375-973f-8d9c68138cc8"
+    },
+    {
+      "from": "cloud",
+      "status": 403,
+      "message": {
+        "type": "/app/v1/problems/role_required",
+        "title": "Role required",
+        "status": 403,
+        "detail": "An admin cannot remove the owner."
+      }
+    },
+    {
+      "note": "The owner tries to leave."
+    },
+    {
+      "from": "app",
+      "request": "DELETE /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/members/01a1a06c-1400-7375-973f-8d9c68138cc8"
+    },
+    {
+      "from": "cloud",
+      "status": 409,
+      "message": {
+        "type": "/app/v1/problems/owner_cannot_leave",
+        "title": "Owner cannot leave",
+        "status": 409,
+        "detail": "Hand the home over, or delete it, first."
+      }
+    },
+    {
+      "note": "So the owner signs in again with Google, with a fresh nonce, to delete the home."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/nonces"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "nonce": "rQoAu9Rv_F0jWsMhrze4pzJWfrAQsiSa23ih45FB3vw",
+        "expires_in": 300
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510:delete",
+      "message": {
+        "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhdWQiOiIwMDAwMDAwMDAwMDAtZXhhbXBsZS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwOTg3NjU0MzIxMDk4NzY1NDMyMSIsImVtYWlsIjoibGluaEBleGFtcGxlLmNvbSIsIm5vbmNlIjoiclFvQXU5UnZfRjBqV3NNaHJ6ZTRwekpXZnJBUXNpU2EyM2loNDVGQjN2dyIsImlhdCI6MTc5MzY5NTgwMCwiZXhwIjoxNzkzNjk2NDAwfQ.bm90IGEgc2lnbmF0dXJlOiBhbiBleGFtcGxl"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 409,
+      "message": {
+        "type": "/app/v1/problems/owns_home_with_members",
+        "title": "Owns a home with members",
+        "status": 409,
+        "detail": "Hand the home over, or remove its people, first."
+      }
+    },
+    {
+      "note": "So the owner signs in again, and hands the home over. The old owner is now an admin."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/nonces"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "nonce": "S4BKRPNG5_3aRISfEfEA7EeIA4Uzci-3LdzSzZj-jzc",
+        "expires_in": 300
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510:transfer",
+      "message": {
+        "to_member_id": "01a1a087-8b40-78fa-a849-084724ef9500",
+        "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhdWQiOiIwMDAwMDAwMDAwMDAtZXhhbXBsZS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwOTg3NjU0MzIxMDk4NzY1NDMyMSIsImVtYWlsIjoibGluaEBleGFtcGxlLmNvbSIsIm5vbmNlIjoiUzRCS1JQTkc1XzNhUklTZkVmRUE3RWVJQTRVemNpLTNMZHpTelpqLWp6YyIsImlhdCI6MTc5MzY5NjQwMCwiZXhwIjoxNzkzNjk3MDAwfQ.bm90IGEgc2lnbmF0dXJlOiBhbiBleGFtcGxl"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "01a1a06c-1400-7ffd-b448-26955bb4d510",
+        "name": "Nhà của Linh",
+        "time_zone": "Asia/Ho_Chi_Minh",
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "member_id": "01a1a06c-1400-7375-973f-8d9c68138cc8",
+        "role": "admin",
+        "create_time": "2026-11-03T08:00:00Z",
+        "etag": "W/\"3\""
+      }
+    },
+    {
+      "note": "The second person, now the owner, opens the app."
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "01a1a06c-1400-7ffd-b448-26955bb4d510",
+        "name": "Nhà của Linh",
+        "time_zone": "Asia/Ho_Chi_Minh",
+        "languages": [
+          "vi",
+          "en"
+        ],
+        "member_id": "01a1a087-8b40-78fa-a849-084724ef9500",
+        "role": "owner",
+        "create_time": "2026-11-03T08:00:00Z",
+        "etag": "W/\"3\""
+      }
+    },
+    {
+      "note": "The old owner leaves. The cloud deletes what belonged to them in this home."
+    },
+    {
+      "from": "app",
+      "request": "DELETE /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/members/01a1a06c-1400-7375-973f-8d9c68138cc8"
+    },
+    {
+      "from": "cloud",
+      "status": 204
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510"
+    },
+    {
+      "from": "cloud",
+      "status": 404,
+      "message": {
+        "type": "about:blank",
+        "title": "Not Found",
+        "status": 404
+      }
+    },
+    {
+      "note": "The new owner, the last person with an account here, signs in again and deletes the home. The profile goes with it."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/nonces"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "nonce": "Q7_xMeIXG9rVBKlO4f0vDhRVz09Mt_QPaAOh_4FyKYc",
+        "expires_in": 300
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510:delete",
+      "message": {
+        "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImV4YW1wbGUiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhdWQiOiIwMDAwMDAwMDAwMDAtZXhhbXBsZS5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsInN1YiI6IjEwODc2NTQzMjEwOTg3NjU0MzIxMCIsImVtYWlsIjoibWluaEBleGFtcGxlLmNvbSIsIm5vbmNlIjoiUTdfeE1lSVhHOXJWQktsTzRmMHZEaFJWejA5TXRfUVBhQU9oXzRGeUtZYyIsImlhdCI6MTc5MzcwMDAwMCwiZXhwIjoxNzkzNzAwNjAwfQ.bm90IGEgc2lnbmF0dXJlOiBhbiBleGFtcGxl"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 204
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes?page_size=20"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "homes": [],
+        "next_page_token": ""
+      }
+    }
+  ]
+}

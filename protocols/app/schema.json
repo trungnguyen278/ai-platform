@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "The app API, ai-app and ai-cloud, version 1.0",
+  "title": "The app API, ai-app and ai-cloud, version 1.1",
   "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {
@@ -68,6 +68,49 @@
       "minLength": 1,
       "maxLength": 2048,
       "description": "Sign in with Apple's authorization code, which comes with Apple's ID token only"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]+$",
+      "description": "A name that a request sets: without control characters"
+    },
+    "time_zone": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+      "maxLength": 64,
+      "description": "An IANA time zone name (ADR-0004)"
+    },
+    "home_languages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/language"
+      },
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "description": "A home's default languages, most preferred first (ADR-0002, ADR-0005)"
+    },
+    "etag": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "role": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+      "description": "owner, admin or member. Others may come with later versions: the app treats one it does not know as member."
+    },
+    "member_kind": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+      "description": "account or profile. Others may come with later versions: the app treats one it does not know as profile."
+    },
+    "invitation_code": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$",
+      "description": "32 random bytes, base64url without padding"
     },
     "token_exchange_request": {
       "description": "Form fields of POST /app/token, exchanging a provider's ID token (README, The exchange)",
@@ -156,7 +199,7 @@
       }
     },
     "id_token_request": {
-      "description": "An ID token just signed in: to link an identity (POST /app/v1/account/identities), or to delete the account (POST /app/v1/account:delete). README, Identities and Deleting it",
+      "description": "An ID token just signed in: to link an identity (POST /app/v1/account/identities), to delete the account (POST /app/v1/account:delete), or to delete a home (POST /app/v1/homes/{home_id}:delete). README, Identities, Deleting it and Deleting a home",
       "type": "object",
       "required": [
         "id_token"
@@ -167,6 +210,98 @@
         },
         "authorization_code": {
           "$ref": "#/$defs/authorization_code"
+        }
+      }
+    },
+    "home_create": {
+      "description": "POST /app/v1/homes (README, Creating a home)",
+      "type": "object",
+      "required": [
+        "name",
+        "time_zone",
+        "languages"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "time_zone": {
+          "$ref": "#/$defs/time_zone"
+        },
+        "languages": {
+          "$ref": "#/$defs/home_languages"
+        }
+      }
+    },
+    "home_update": {
+      "description": "PATCH /app/v1/homes/{home_id}: the fields to change (README, Reading and changing a home)",
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "time_zone": {
+          "$ref": "#/$defs/time_zone"
+        },
+        "languages": {
+          "$ref": "#/$defs/home_languages"
+        }
+      }
+    },
+    "profile_create": {
+      "description": "POST /app/v1/homes/{home_id}/members: a profile (README, The people in a home)",
+      "type": "object",
+      "required": [
+        "display_name"
+      ],
+      "properties": {
+        "display_name": {
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "member_update": {
+      "description": "PATCH /app/v1/homes/{home_id}/members/{member_id}: the fields to change (README, The people in a home)",
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "role": {
+          "enum": [
+            "admin",
+            "member"
+          ]
+        },
+        "display_name": {
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "invitation_code_request": {
+      "description": "POST /app/v1/invitations:lookup and POST /app/v1/invitations:accept (README, Invitations)",
+      "type": "object",
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/invitation_code"
+        }
+      }
+    },
+    "home_transfer": {
+      "description": "POST /app/v1/homes/{home_id}:transfer, with an ID token just signed in (README, Handing a home over)",
+      "type": "object",
+      "required": [
+        "to_member_id",
+        "id_token"
+      ],
+      "properties": {
+        "to_member_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "id_token": {
+          "$ref": "#/$defs/token"
         }
       }
     },
@@ -372,6 +507,206 @@
         }
       }
     },
+    "home": {
+      "description": "What creating, reading and changing a home answer (README, Homes). member_id and role are those of the person who asks.",
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "time_zone",
+        "languages",
+        "member_id",
+        "role",
+        "create_time",
+        "etag"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "time_zone": {
+          "$ref": "#/$defs/time_zone"
+        },
+        "languages": {
+          "$ref": "#/$defs/home_languages"
+        },
+        "member_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "role": {
+          "$ref": "#/$defs/role"
+        },
+        "create_time": {
+          "$ref": "#/$defs/instant"
+        },
+        "etag": {
+          "$ref": "#/$defs/etag"
+        }
+      }
+    },
+    "home_list": {
+      "description": "What GET /app/v1/homes answers: a page (README, Reading and changing a home)",
+      "type": "object",
+      "required": [
+        "homes",
+        "next_page_token"
+      ],
+      "properties": {
+        "homes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/home"
+          },
+          "maxItems": 50
+        },
+        "next_page_token": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "member": {
+      "description": "A person in a home (README, The people in a home). A person with an account has a role; a profile has none.",
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "display_name",
+        "current",
+        "create_time",
+        "etag"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "kind": {
+          "$ref": "#/$defs/member_kind"
+        },
+        "display_name": {
+          "$ref": "#/$defs/display_name"
+        },
+        "role": {
+          "$ref": "#/$defs/role"
+        },
+        "current": {
+          "type": "boolean"
+        },
+        "create_time": {
+          "$ref": "#/$defs/instant"
+        },
+        "etag": {
+          "$ref": "#/$defs/etag"
+        }
+      },
+      "if": {
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "const": "account"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "role"
+        ]
+      }
+    },
+    "member_list": {
+      "description": "What GET /app/v1/homes/{home_id}/members answers: a page (README, The people in a home)",
+      "type": "object",
+      "required": [
+        "members",
+        "next_page_token"
+      ],
+      "properties": {
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/member"
+          },
+          "maxItems": 50
+        },
+        "next_page_token": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "invitation": {
+      "description": "An open invitation. Its code comes only in the answer that makes it (README, Invitations)",
+      "type": "object",
+      "required": [
+        "id",
+        "invited_by",
+        "create_time",
+        "expire_time"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "code": {
+          "$ref": "#/$defs/invitation_code"
+        },
+        "invited_by": {
+          "$ref": "#/$defs/display_name"
+        },
+        "create_time": {
+          "$ref": "#/$defs/instant"
+        },
+        "expire_time": {
+          "$ref": "#/$defs/instant"
+        }
+      }
+    },
+    "invitation_list": {
+      "description": "What GET /app/v1/homes/{home_id}/invitations answers: a page, without codes (README, Invitations)",
+      "type": "object",
+      "required": [
+        "invitations",
+        "next_page_token"
+      ],
+      "properties": {
+        "invitations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/invitation"
+          },
+          "maxItems": 50
+        },
+        "next_page_token": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
+    "invitation_preview": {
+      "description": "What POST /app/v1/invitations:lookup answers (README, Invitations)",
+      "type": "object",
+      "required": [
+        "home_name",
+        "invited_by",
+        "expire_time"
+      ],
+      "properties": {
+        "home_name": {
+          "$ref": "#/$defs/name"
+        },
+        "invited_by": {
+          "$ref": "#/$defs/display_name"
+        },
+        "expire_time": {
+          "$ref": "#/$defs/instant"
+        }
+      }
+    },
     "problem": {
       "description": "Problem Details (RFC 9457), as the API answers an error (README, Errors)",
       "type": "object",
@@ -479,6 +814,55 @@
         },
         {
           "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "name"
+                ]
+              },
+              {
+                "required": [
+                  "time_zone"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/home_update"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/member_update"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "code"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/invitation_code_request"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "to_member_id"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/home_transfer"
+          }
+        },
+        {
+          "if": {
             "not": {
               "anyOf": [
                 {
@@ -499,6 +883,26 @@
                 {
                   "required": [
                     "nonce"
+                  ]
+                },
+                {
+                  "required": [
+                    "name"
+                  ]
+                },
+                {
+                  "required": [
+                    "time_zone"
+                  ]
+                },
+                {
+                  "required": [
+                    "role"
+                  ]
+                },
+                {
+                  "required": [
+                    "code"
                   ]
                 }
               ]
@@ -598,6 +1002,77 @@
           },
           "then": {
             "$ref": "#/$defs/development_id_token_response"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "homes"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/home_list"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "time_zone"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/home"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "members"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/member_list"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/member"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "invitations"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/invitation_list"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "id",
+              "invited_by"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/invitation"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "home_name"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/invitation_preview"
           }
         }
       ]
