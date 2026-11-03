@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
-"""Check the protocols: every schema is valid JSON Schema, every example follows its
-schema, and a new minor version still accepts the examples of the version before it.
-Check the catalogs too: their schema, their examples, and the copy of MF2's test suite.
+"""Check the protocols: every schema is valid JSON Schema, its patterns keep to ADR-0010,
+every example follows its schema, and a new minor version still accepts the examples of the
+version before it. Check the catalogs too: their schema, their examples, and the copy of
+MF2's test suite.
 
     python tools/check.py
 
@@ -15,8 +16,10 @@ import json
 import re
 import subprocess
 import sys
+import warnings
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 from jsonschema import Draft202012Validator
 
@@ -109,8 +112,241 @@ def check_catalogs() -> list[str]:
     return problems
 
 
+# ADR-0010: what every engine reads alike in a pattern, by RFC 9485's grammar (section 3).
+# Outside a class, the characters to which I-Regexp gives a meaning: any other is itself.
+SPECIAL = frozenset("()*+.?[\\]{|}")
+# What a backslash may escape: I-Regexp's SingleCharEsc, but for "-" outside a class, which
+# ECMA-262 refuses with the u flag.
+ESCAPES = frozenset("()*+.?[\\]^{|}nrt")
+CLASS_ESCAPES = ESCAPES | {"-"}
+# Pairs in a class that Python warns may become set operations.
+SET_OPERATIONS = ("&&", "||", "~~")
+# Patterns that the reader must accept, and must refuse: it proves nothing until it has
+# refused one.
+PLANTED_GOOD = (
+    "^[a-z]+$",
+    "^https?://",
+    "^(about:blank|/app/v[0-9]+/problems/[a-z][a-z0-9_]{0,63})$",
+    "^\\.[a-z]{2,}$",
+    "^[A-Za-z0-9_-]{43}$",
+    "^[-a]$",
+    "^[^\u0000-\u001f\u007f-\u009f]+$",
+    "^([0-9a-f]{2}){1,32}$",
+)
+PLANTED_BAD = (
+    "^\\d+$",
+    "^[^@\\s]+@[^@\\s]+$",
+    "^a.b$",
+    "^\\p{L}+$",
+    "^a\\-b$",
+    "^a^b$",
+    "^a$b$",
+    "a$",
+    "^[a&&b]$",
+    "^[^]$",
+    "^a**$",
+    "^(a$",
+    "^a)$",
+    "^a{3,1}$",
+    "^[z-a]$",
+    "^(?:a)$",
+    "^a*?$",
+    "^a\\$",
+    "^[a-z-0]$",
+    "^{2}$",
+    "^\\u00e9$",
+)
+
+
+class PatternError(ValueError):
+    """Where a pattern leaves ADR-0010's rules."""
+
+
+class PatternReader:
+    """Reads the body of a pattern, between its anchors, by RFC 9485's grammar and within
+    ADR-0010: no dot, no Unicode property, no anchor inside, no escaped "-" outside a class."""
+
+    def __init__(self, body: str) -> None:
+        self.body = body
+        self.at = 0
+
+    def fail(self, why: str) -> NoReturn:
+        raise PatternError(f"{why}, at {self.at} of its body")
+
+    def peek(self) -> str | None:
+        return self.body[self.at] if self.at < len(self.body) else None
+
+    def take(self) -> str:
+        char = self.body[self.at]
+        if 0xD800 <= ord(char) <= 0xDFFF:
+            self.fail("a lone surrogate")
+        self.at += 1
+        return char
+
+    def read(self) -> None:
+        self.regexp()
+        if self.at != len(self.body):
+            self.fail("a ')' that closes no group")
+
+    def regexp(self) -> None:
+        # i-regexp = branch *( "|" branch )
+        self.branch()
+        while self.peek() == "|":
+            self.take()
+            self.branch()
+
+    def branch(self) -> None:
+        # branch = *piece, and piece = atom [ quantifier ]
+        while self.peek() not in (None, "|", ")"):
+            self.atom()
+            self.quantifier()
+
+    def atom(self) -> None:
+        char = self.take()
+        if char == "(":
+            self.regexp()
+            if self.peek() != ")":
+                self.fail("a group that is not closed")
+            self.take()
+        elif char == "[":
+            self.char_class()
+        elif char == "\\":
+            self.escape(ESCAPES)
+        elif char == ".":
+            self.fail("a dot, which engines read differently")
+        elif char in "^$":
+            self.fail(f"{char!r}, an anchor, inside the body")
+        elif char in SPECIAL:
+            self.fail(f"{char!r} where a character belongs")
+
+    def escape(self, allowed: frozenset[str]) -> None:
+        if self.peek() is None:
+            self.fail("a backslash that escapes nothing")
+        char = self.take()
+        if char not in allowed:
+            self.fail(f"the escape \\{char}")
+
+    def quantifier(self) -> None:
+        # quantifier = ( "*" / "+" / "?" ) / "{" QuantExact [ "," [ QuantExact ] ] "}"
+        if self.peek() in ("*", "+", "?"):
+            self.take()
+        elif self.peek() == "{":
+            self.take()
+            low = high = self.number()
+            if self.peek() == ",":
+                self.take()
+                high = None if self.peek() == "}" else self.number()
+            if self.peek() != "}":
+                self.fail("a range quantifier that is not closed")
+            self.take()
+            if high is not None and high < low:
+                self.fail("a range quantifier whose bounds are reversed")
+        else:
+            return
+        if self.peek() in ("*", "+", "?", "{"):
+            self.fail("a second quantifier")
+
+    def number(self) -> int:
+        start = self.at
+        while (char := self.peek()) is not None and "0" <= char <= "9":
+            self.take()
+        if self.at == start:
+            self.fail("a range quantifier without its number")
+        return int(self.body[start : self.at])
+
+    def char_class(self) -> None:
+        # charClassExpr = "[" [ "^" ] ( "-" / CCE1 ) *CCE1 [ "-" ] "]"
+        start = self.at
+        if self.peek() == "^":
+            self.take()
+        items = 0
+        while True:
+            char = self.peek()
+            if char is None:
+                self.fail("a class that is not closed")
+            if char == "]" and items:
+                self.take()
+                break
+            if char == "-":
+                self.take()
+                if items and self.peek() != "]":
+                    self.fail("a '-' in a class that makes no range")
+            else:
+                self.class_char()
+                if self.peek() == "-" and self.body[self.at + 1 : self.at + 2] not in ("]", ""):
+                    self.take()
+                    self.class_char()
+            items += 1
+        if any(pair in self.body[start : self.at] for pair in SET_OPERATIONS):
+            self.fail("a pair in a class that Python reads as a set operation to come")
+
+    def class_char(self) -> None:
+        char = self.take()
+        if char == "\\":
+            self.escape(CLASS_ESCAPES)
+        elif char in "[]":
+            self.fail(f"{char!r} in a class, unescaped")
+
+
+def pattern_problem(pattern: str) -> str | None:
+    """Why `pattern` leaves ADR-0010's rules, or None if it keeps to them."""
+    if not pattern.startswith("^"):
+        return "it does not start with ^"
+    body = pattern[1:-1] if pattern.endswith("$") else pattern[1:]
+    try:
+        PatternReader(body).read()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            re.compile(pattern)
+    except (PatternError, re.error, FutureWarning) as error:
+        return str(error)
+    return None
+
+
+def schema_patterns(node: Any, where: str = "") -> Iterator[tuple[str, str]]:
+    """The regular expressions of a schema, with where they are: its patterns, and the keys
+    of its patternProperties."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "pattern" and isinstance(value, str):
+                yield f"{where}/pattern", value
+            elif key == "patternProperties" and isinstance(value, dict):
+                for expression, subschema in value.items():
+                    yield f"{where}/patternProperties", expression
+                    yield from schema_patterns(subschema, f"{where}/patternProperties")
+            else:
+                yield from schema_patterns(value, f"{where}/{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            yield from schema_patterns(value, f"{where}/{index}")
+
+
+def check_patterns(schemas: dict[str, Any]) -> list[str]:
+    """Problems with the patterns of `schemas`, by file, against ADR-0010; and with the
+    reader itself, which must accept and refuse the planted ones."""
+    problems = [f"tools/check.py: refuses {p!r}" for p in PLANTED_GOOD if pattern_problem(p)]
+    problems += [
+        f"tools/check.py: accepts {p!r}" for p in PLANTED_BAD if pattern_problem(p) is None
+    ]
+    count = 0
+    for file, schema in schemas.items():
+        for where, pattern in schema_patterns(schema):
+            count += 1
+            if (problem := pattern_problem(pattern)) is not None:
+                problems.append(f"{file}#{where}: {problem} (ADR-0010)")
+    print(f"patterns: {count}, against ADR-0010")
+    return problems
+
+
 def main() -> int:
     problems: list[str] = check_catalogs()
+    schemas = [*sorted(PROTOCOLS.glob("*/schema.json")), CATALOGS / "schema.json"]
+    problems += check_patterns(
+        {
+            path.relative_to(ROOT).as_posix(): json.loads(path.read_text(encoding="utf-8"))
+            for path in schemas
+        }
+    )
     for folder in sorted(path for path in PROTOCOLS.iterdir() if path.is_dir()):
         name = folder.name
         schema = json.loads((folder / "schema.json").read_text(encoding="utf-8"))
