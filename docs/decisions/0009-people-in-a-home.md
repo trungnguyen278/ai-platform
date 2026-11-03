@@ -1,6 +1,6 @@
 # 0009 — People in a home: what roles allow, how people join, how a home changes hands
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-03
 - **Revised:** 2026-11-03: redone from what large products do, at the owner's request. A home is deleted only by its last person with an account, handing it over takes one step, and a person's name is the home's.
 
