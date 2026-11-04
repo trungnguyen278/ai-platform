@@ -17,7 +17,7 @@ Version **1.3**:
 - **1.1** adds homes: creating and changing them, the people in them and their roles, profiles, invitations, handing a home over, and deleting it. It also says what a refused ID token gets when it links an identity, what a name may hold, and what "other members" means when an account is deleted.
 - **1.0** signs people in, and lets them see and change their account, its identities and its sessions, and delete it.
 
-> **Implemented:** version 1.2 by the cloud, but for Apple and the page at `/join`. The app: not yet.
+> **Implemented:** version 1.3 by the cloud, but for Apple and the page at `/join`. The app: its client of version 1.2, which no screen uses yet.
 
 ## The cloud's address
 
