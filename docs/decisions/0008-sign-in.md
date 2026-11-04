@@ -1,6 +1,6 @@
 # 0008 — Signing in: the cloud's own accounts, reached with Google or Apple
 
-- **Status:** Accepted
+- **Status:** Accepted. Decision 3's refresh tokens are amended by [ADR-0011](0011-refreshing-again.md): one may refresh again just after its first use, while its replacement is unused.
 - **Date:** 2026-10-31
 
 ## Context

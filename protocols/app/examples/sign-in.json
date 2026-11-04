@@ -1,5 +1,5 @@
 {
-  "description": "A new owner signs in with Google on an Android phone, and sets their languages. Later the app refreshes, and the old refresh token, presented again, ends the session.",
+  "description": "A new owner signs in with Google on an Android phone, and sets their languages. Later the app refreshes, loses the answer and sends the same refresh token again, which works. A copy of the first refresh token, presented after the app has refreshed since, ends the session.",
   "messages": [
     {
       "from": "app",
@@ -121,7 +121,51 @@
       }
     },
     {
-      "note": "The first refresh token again: a copy of it was stolen, or a request replayed."
+      "note": "That answer was lost on the way. The app still holds the first refresh token, and sends it again at once: its replacement has not been used, and refresh_reuse has not passed."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/token",
+      "message": {
+        "grant_type": "refresh_token",
+        "refresh_token": "As5zCdcG42GWe66Teh9rKDZ8U1y2ashnl9DMc_yCMfA",
+        "client_id": "ai-app"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "access_token": "pPqe-Pj9ZAAqIamRwuuicccbIkHL6X0YISn45vokFMM",
+        "token_type": "Bearer",
+        "expires_in": 600,
+        "refresh_token": "nCKjvbNSGkQFKNdATGIu6H_fnghqLvC1BDRfPJfgqc4"
+      }
+    },
+    {
+      "note": "Ten minutes later, the app refreshes as usual, with the refresh token it now holds."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/token",
+      "message": {
+        "grant_type": "refresh_token",
+        "refresh_token": "nCKjvbNSGkQFKNdATGIu6H_fnghqLvC1BDRfPJfgqc4",
+        "client_id": "ai-app"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "access_token": "e41k4P5E13pFbmFkRu4J8lArhHHuqnmzkgDUxgDUeus",
+        "token_type": "Bearer",
+        "expires_in": 600,
+        "refresh_token": "f-EPxBOpgjcp9tAAnutOZCW0UZa9k0P8uFgVzBQ5ccg"
+      }
+    },
+    {
+      "note": "The first refresh token again: a copy of it was stolen, or a request replayed. Its replacement has been used since."
     },
     {
       "from": "app",

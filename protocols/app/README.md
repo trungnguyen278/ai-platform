@@ -2,9 +2,9 @@
 
 How the owner's app talks to `ai-cloud`: signing in, the account and its sessions, and homes and the people in them. A home's devices and set-up's registration come in later minor versions.
 
-Version **1.2**:
+Version **1.3**:
 - It builds on:
-  - [ADR-0008](../../docs/decisions/0008-sign-in.md): the cloud's own accounts, reached with Google or Apple, and sessions of its own tokens;
+  - [ADR-0008](../../docs/decisions/0008-sign-in.md): the cloud's own accounts, reached with Google or Apple, and sessions of its own tokens, which [ADR-0011](../../docs/decisions/0011-refreshing-again.md) lets an app refresh again after a lost answer;
   - [ADR-0005](../../docs/decisions/0005-homes.md) and [ADR-0009](../../docs/decisions/0009-people-in-a-home.md): homes, the people who are their members, what each may do, and how they join;
   - [ADR-0003](../../docs/decisions/0003-compatibility.md) and [ADR-0004](../../docs/decisions/0004-conventions.md): compatibility and conventions;
   - [ADR-0010](../../docs/decisions/0010-patterns.md): patterns that every engine reads alike.
@@ -12,6 +12,7 @@ Version **1.2**:
 - [`schema.json`](schema.json) defines every request and response body, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
+- **1.3** lets a refresh token refresh again just after its first use, while the token that replaced it is unused, so that an answer lost on the way does not end the session ([ADR-0011](../../docs/decisions/0011-refreshing-again.md)). An app of 1.2 never presents a token again, so nothing breaks.
 - **1.2** writes the email's and the name's patterns so that every engine reads them alike ([ADR-0010](../../docs/decisions/0010-patterns.md)). The email's now refuses control characters too. No app exists yet, and the cloud keeps only the emails that providers have verified, so nothing breaks.
 - **1.1** adds homes: creating and changing them, the people in them and their roles, profiles, invitations, handing a home over, and deleting it. It also says what a refused ID token gets when it links an identity, what a name may hold, and what "other members" means when an account is deleted.
 - **1.0** signs people in, and lets them see and change their account, its identities and its sessions, and delete it.
@@ -123,7 +124,10 @@ grant_type=refresh_token&refresh_token=rT1n9v0wq8cT2zrQyD6qG8...&client_id=ai-ap
 ```
 
 - **The answer is the same as the exchange's,** with a new refresh token. The app replaces the old one at once.
-- **Rotation:** a refresh token works once ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), §4.14.2). One presented again was stolen or replayed: the cloud refuses it with `invalid_grant`, and ends its session, so that neither copy works.
+- **Rotation:** a refresh token works once ([RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), §4.14.2), but for a retry ([ADR-0011](../../docs/decisions/0011-refreshing-again.md)).
+  - **A retry:** for `refresh_reuse` after its first use, while the token that replaced it has not been used, a refresh token refreshes again. The cloud answers with new tokens, and the ones it gave before stop working.
+  - **The app sends a refresh again** only when no answer came, at once, with the same refresh token.
+  - **Any other token presented again** was stolen or replayed: the cloud refuses it with `invalid_grant`, and ends its session, so that no copy works.
 - **A session left unused** for `refresh_idle` ends.
 - **After `invalid_grant`,** the app signs in again.
 
@@ -398,7 +402,7 @@ How this version meets the [requirements](../cloud/requirements.md#9-security):
 - **SEC-12:**
   - nonces are single-use and expire;
   - access tokens expire within `access_lifetime`;
-  - refresh tokens rotate, and one presented twice ends its session;
+  - refresh tokens rotate, and one presented again ends its session, but for a retry just after its first use, while its replacement is unused. A retry continues the same session, whose replacement then stops working, so that it never has two refresh tokens that work;
   - an invitation's code works once, expires, and is kept only as a hash. Removing or demoting the person who made it revokes it, so that nobody keeps a way back in.
 - **SEC-14, SEC-15:** the cloud validates every body against `schema.json`, and limits rates, the nonces' and the invitation codes' above all.
 - **PRIV-4:** the person deletes the account, and with it everything that is theirs, from the app or the web. A fresh sign-in comes first, so that a phone left unlocked cannot do it. Leaving a home, or being removed from it, deletes what belongs to the person there, and deleting a home deletes all it holds.
@@ -415,6 +419,7 @@ The values below are starting points, not part of the protocol: the cloud sets i
 | `nonce_lifetime` | 300 s | How long a nonce is valid |
 | `access_lifetime` | 600 s | How long an access token is valid |
 | `refresh_idle` | 90 days | How long a session lasts unused |
+| `refresh_reuse` | 60 s, Okta's most (ADR-0011) | How long after its first use a refresh token refreshes again, while its replacement is unused |
 | `recent_sign_in` | 300 s | How old an ID token may be, to delete the account or a home, or to hand a home over |
 | `nonce_rate` | 10 a minute, for each address | How many nonces an address gets |
 | `idempotency_retention` | 24 hours | How long the cloud answers a retry with its first answer |
