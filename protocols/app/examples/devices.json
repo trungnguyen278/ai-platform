@@ -1,0 +1,291 @@
+{
+  "description": "An owner adds a robot to her home at set-up, with a challenge that the robot's key signs. The answer is lost, and the retry gets it again. The app waits until the robot connects. A member sees the home's devices, and cannot add one. The robot loses its state: another home cannot take it, and the first takes it again. The owner removes it, and, set up again, it comes back as a new device. The registrations' signatures are real: each verifies with the key in its header, made for this example, whose thumbprint is A9J9ACDRqGsoYjAJJK-upx23ibV7l4Bofp0C6uidqC8.",
+  "messages": [
+    {
+      "note": "Linh owns the home, and has signed in, as in sign-in.json. She sets a robot up over Bluetooth, as in set-up's session.json: it has joined the home's Wi-Fi network, which reaches the Internet, and taken the home's languages and time zone."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/device-challenges"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "challenge": "_78Ey8sWPuFZRoui3_Hd6FOKfv6icQkNhNBoYoR_uRw",
+        "server": "https://cloud.example",
+        "expires_in": 300
+      }
+    },
+    {
+      "note": "The app sends the robot `register`, with the challenge and the server. The robot answers with its registration, signed by its key."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices",
+      "headers": {
+        "Idempotency-Key": "\"01a1aaef-c638-75b0-9fe9-3e25b48c585d\""
+      },
+      "message": {
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "connected": false,
+        "create_time": "2026-11-05T09:00:03Z"
+      }
+    },
+    {
+      "note": "That answer was lost, so the app sends the same request again, with the same key. It gets the same answer."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices",
+      "headers": {
+        "Idempotency-Key": "\"01a1aaef-c638-75b0-9fe9-3e25b48c585d\""
+      },
+      "message": {
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "connected": false,
+        "create_time": "2026-11-05T09:00:03Z"
+      }
+    },
+    {
+      "note": "The app sends `finish`. The robot asks the cloud for a token, gets one, and is bound. The app reads the device until it has connected."
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "connected": false,
+        "create_time": "2026-11-05T09:00:03Z"
+      }
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "kind": "robot",
+        "model": "concept-v0",
+        "software": "0.4.0",
+        "connected": true,
+        "create_time": "2026-11-05T09:00:03Z"
+      }
+    },
+    {
+      "note": "The same registration, sent under another key, adds nothing: its challenge is used."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices",
+      "headers": {
+        "Idempotency-Key": "\"01a1aaf4-4e60-72c4-b96e-4b5309dcc7fe\""
+      },
+      "message": {
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 400,
+      "message": {
+        "type": "/app/v1/problems/registration_invalid",
+        "title": "Registration invalid",
+        "status": 400,
+        "detail": "This registration cannot be used."
+      }
+    },
+    {
+      "note": "Minh, a member of the home, sees its devices, and cannot add one."
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices?page_size=20"
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "devices": [
+          {
+            "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+            "kind": "robot",
+            "model": "concept-v0",
+            "software": "0.4.0",
+            "connected": true,
+            "create_time": "2026-11-05T09:00:03Z"
+          }
+        ],
+        "next_page_token": ""
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/device-challenges"
+    },
+    {
+      "from": "cloud",
+      "status": 403,
+      "message": {
+        "type": "/app/v1/problems/role_required",
+        "title": "Role required",
+        "status": 403,
+        "detail": "A member cannot add devices."
+      }
+    },
+    {
+      "note": "A week later, the robot loses what it kept, but not its key, and offers set-up. Linh sets it up in her second home: the cloud holds the robot in the first, so the second cannot take it."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a5c9-5e80-70e4-9678-2fc9ea0d06c7/device-challenges"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "challenge": "ifAslqDGDFQigGX0hul3DHYK1KRdg3eS1qv7CRnNZhw",
+        "server": "https://cloud.example",
+        "expires_in": 300
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a5c9-5e80-70e4-9678-2fc9ea0d06c7/devices",
+      "headers": {
+        "Idempotency-Key": "\"01a1cf33-38b8-7f62-a1e7-b33278cfaabf\""
+      },
+      "message": {
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6ImlmQXNscURHREZRaWdHWDBodWwzREhZSzFLUmRnM2VTMXF2N0NSbk5aaHciLCJqdGkiOiIwR1RMeG9mRFloNVFfZDliIn0.n5-I0Ck3oAhH3YqDSdj4_1tw-Uu1Hx73YphMb2eeF7jcn005tN97guPgwrUHr_x1lXocQRHKf3l21GQhLzWk7g"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 409,
+      "message": {
+        "type": "/app/v1/problems/device_taken",
+        "title": "Device taken",
+        "status": 409,
+        "detail": "The device is in another home."
+      }
+    },
+    {
+      "note": "So she sets it up in the first home again, where the cloud already holds it. The robot learns its server again."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/device-challenges"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "challenge": "hkKlMDLSl5ABODYD5uvDWt0Tzf8ljrkJoZqOAViJMGg",
+        "server": "https://cloud.example",
+        "expires_in": 300
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices",
+      "headers": {
+        "Idempotency-Key": "\"01a1cf37-cc98-798e-ab37-492fe6c023d9\""
+      },
+      "message": {
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6ImhrS2xNRExTbDVBQk9EWUQ1dXZEV3QwVHpmOGxqcmtKb1pxT0FWaUpNR2ciLCJqdGkiOiJyZnl1bGxsNVRYNzR4dEx2In0.x-nKojqYE6fHIQDyCDBAsfGmUhckEiqzgTyD9u4nm7PQHlzMDD8HUyQsSbP-Ft5FtaxNuzjo-mESPTVq3bNrnA"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "kind": "robot",
+        "model": "concept-v0",
+        "software": "0.4.0",
+        "connected": false,
+        "create_time": "2026-11-05T09:00:03Z"
+      }
+    },
+    {
+      "note": "The app sends `finish`, and the robot connects again. Then Linh removes it. The cloud ends its session with `bye` `revoked`, and the robot offers set-up."
+    },
+    {
+      "from": "app",
+      "request": "DELETE /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5"
+    },
+    {
+      "from": "cloud",
+      "status": 204
+    },
+    {
+      "from": "app",
+      "request": "GET /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5"
+    },
+    {
+      "from": "cloud",
+      "status": 404,
+      "message": {
+        "type": "about:blank",
+        "title": "Not Found",
+        "status": 404
+      }
+    },
+    {
+      "note": "Set up again, the robot comes back as a new device: the cloud forgot its key."
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/device-challenges"
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "challenge": "VtDImOb10HcKzIZnAyk0BQ_xdSMitrUleZ-me_9X8EY",
+        "server": "https://cloud.example",
+        "expires_in": 300
+      }
+    },
+    {
+      "from": "app",
+      "request": "POST /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices",
+      "headers": {
+        "Idempotency-Key": "\"01a1cf45-8838-7498-9522-9f32b674b230\""
+      },
+      "message": {
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6IlZ0REltT2IxMEhjS3pJWm5BeWswQlFfeGRTTWl0clVsZVotbWVfOVg4RVkiLCJqdGkiOiJWcUNOT3l0MllTdkZRUlNnIn0.YzxyBGR7tP5DPExmZk-35k5ljGhx3dPTXnwq3sjbVOfzmDrRBeWOn6J7GawY3p3IVxrzCqmjxejy_xm7ZR6dCQ"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 201,
+      "message": {
+        "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "connected": false,
+        "create_time": "2026-11-12T10:20:03Z"
+      }
+    }
+  ]
+}

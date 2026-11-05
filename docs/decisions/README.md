@@ -19,6 +19,7 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0009](0009-people-in-a-home.md) | People in a home: what roles allow, how people join, how a home changes hands | Accepted | 2026-11-03 |
 | [0010](0010-patterns.md) | Patterns: regular expressions that every engine reads alike | Accepted | 2026-11-03 |
 | [0011](0011-refreshing-again.md) | Refreshing again, after an answer was lost | Accepted | 2026-11-04 |
+| [0012](0012-registering-devices.md) | Registering a device into a home: the cloud's challenge, signed by the device, relayed by the app | Accepted | 2026-11-05 |
 
 ## Earlier decisions, in ai-robot
 

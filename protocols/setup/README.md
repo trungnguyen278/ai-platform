@@ -6,6 +6,7 @@ How the owner's app sets up a device: its Wi-Fi network, its first settings, and
 
 Version **2.0**:
 - It follows ai-robot's [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), accepted, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) into a home ([ADR-0005](../../docs/decisions/0005-homes.md)).
+- The app gets the challenge from the cloud, and relays the registration to it, through [the app API](../app/README.md#devices), from its version 1.4 ([ADR-0012](../../docs/decisions/0012-registering-devices.md)).
 - It meets the [requirements](../cloud/requirements.md) on set-up and ownership (PROV-1 to PROV-4), and SEC-3, SEC-5 and SEC-16.
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12.
 - [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys.
@@ -159,8 +160,9 @@ The app sends one request at a time, and waits for its answer.
   - `time_zone` is an IANA name. One the device does not know gets the error `time_zone`, and nothing changes;
   - the device answers with what it keeps. The owner may change both later, on the device or through the cloud.
 - **`register`** is refused with the error `bound` by a device that is already bound: a new owner needs a reset (PROV-4). The device uses `server` from then on, as the server it was registered with.
-  - The app gets `challenge` from the cloud, for the home the device is to join, as a member allowed to add devices: the owner or an admin ([ADR-0005](../../docs/decisions/0005-homes.md)).
+  - The app gets `challenge` and `server` from the cloud, for the home the device is to join, as a member allowed to add devices: the owner or an admin ([ADR-0005](../../docs/decisions/0005-homes.md); [the app API](../app/README.md#adding-a-device)).
   - The device never learns the home: the challenge carries it.
+  - The app relays the registration to the cloud, and sends `finish` once the cloud has answered. After a refusal, such as for a challenge that expired, it may send `register` again in the same session, with a new challenge: the device, not bound yet, signs again.
 - **`finish`** on a device that is not registered leaves it unbound: it then offers set-up again.
 
 ### Errors
@@ -201,6 +203,8 @@ A JWT ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)), signed with ES256 by
   2. `nonce` is a challenge it issued, unexpired and unused, to the member who sends the registration, which it then forgets;
   3. `aud` is its own address;
   4. `iss` equals `sub`, and no device has this key yet, unless it is already in the challenge's home: a device that lost its state registers again, and so learns its server again.
+
+  How the cloud answers the app, and what else it refuses, such as a key or an identifier that another device holds, is [the app API's](../app/README.md#adding-a-device).
 - **What it binds** into the home it issued the challenge for (SEC-3, SEC-6): the device's identifier, and its key with the key's thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)), which the device's assertions name as `kid` ([the cloud link](../cloud/README.md#tokens-from-the-server)).
 - **The device learns that it is bound** when the token endpoint of `server` first accepts its assertion (`/device/token`, the cloud link 3.0). It keeps that, to work offline. An answer of `invalid_client` makes it unbound again: it then offers set-up (PROV-3).
 

@@ -1,23 +1,25 @@
 # App API — ai-app ⇄ ai-cloud
 
-How the owner's app talks to `ai-cloud`: signing in, the account and its sessions, and homes and the people in them. A home's devices and set-up's registration come in later minor versions.
+How the owner's app talks to `ai-cloud`: signing in, the account and its sessions, homes and the people in them, and a home's devices, which set-up registers.
 
-Version **1.3**:
+Version **1.4**:
 - It builds on:
   - [ADR-0008](../../docs/decisions/0008-sign-in.md): the cloud's own accounts, reached with Google or Apple, and sessions of its own tokens, which [ADR-0011](../../docs/decisions/0011-refreshing-again.md) lets an app refresh again after a lost answer;
   - [ADR-0005](../../docs/decisions/0005-homes.md) and [ADR-0009](../../docs/decisions/0009-people-in-a-home.md): homes, the people who are their members, what each may do, and how they join;
+  - [ADR-0012](../../docs/decisions/0012-registering-devices.md): a device registered into a home at set-up, with the cloud's challenge, which the device signs and the app relays;
   - [ADR-0003](../../docs/decisions/0003-compatibility.md) and [ADR-0004](../../docs/decisions/0004-conventions.md): compatibility and conventions;
   - [ADR-0010](../../docs/decisions/0010-patterns.md): patterns that every engine reads alike.
 - It meets the [requirements](../cloud/requirements.md) that apply to the app and the cloud, whose identifiers (SEC-6, PRIV-4…) it cites.
 - [`schema.json`](schema.json) defines every request and response body, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
+- **1.4** adds a home's devices: a challenge to register one at set-up, the registration that the app relays, reading them, and removing one ([ADR-0012](../../docs/decisions/0012-registering-devices.md)). An app of 1.3 calls none of it, so nothing breaks.
 - **1.3** lets a refresh token refresh again just after its first use, while the token that replaced it is unused, so that an answer lost on the way does not end the session ([ADR-0011](../../docs/decisions/0011-refreshing-again.md)). An app of 1.2 never presents a token again, so nothing breaks.
 - **1.2** writes the email's and the name's patterns so that every engine reads them alike ([ADR-0010](../../docs/decisions/0010-patterns.md)). The email's now refuses control characters too. No app exists yet, and the cloud keeps only the emails that providers have verified, so nothing breaks.
 - **1.1** adds homes: creating and changing them, the people in them and their roles, profiles, invitations, handing a home over, and deleting it. It also says what a refused ID token gets when it links an identity, what a name may hold, and what "other members" means when an account is deleted.
 - **1.0** signs people in, and lets them see and change their account, its identities and its sessions, and delete it.
 
-> **Implemented:** version 1.3 by the cloud, but for Apple and the page at `/join`. The app: all of 1.3 in its client; on its screens, signing in with the development provider, the session, the account, and homes with their people, profiles, invitations and joining.
+> **Implemented:** version 1.3 by the cloud, but for Apple and the page at `/join`. The app: all of 1.3 in its client; on its screens, signing in with the development provider, the session, the account, and homes with their people, profiles, invitations and joining. Version 1.4's devices, by neither yet.
 
 ## The cloud's address
 
@@ -25,6 +27,8 @@ The app's configuration names the cloud, as `https://`; `http://` only to a deve
 - `/app/token` and `/app/revoke`: OAuth 2.0's token and revocation endpoints, without a version, as devices' `/device/token`;
 - `/app/v1/…`: the API, whose major version is in its path ([ADR-0004](../../docs/decisions/0004-conventions.md));
 - `/join`: the page that an invitation's link opens ([Invitations](#invitations)).
+
+Devices may reach the cloud at another address, which the cloud gives with each challenge to register one ([Adding a device](#adding-a-device)).
 
 Bodies are JSON (`application/json`), except at the OAuth endpoints, which take form fields (`application/x-www-form-urlencoded`) as OAuth does. The schema and the examples write those fields as a JSON object.
 
@@ -219,8 +223,9 @@ A home owns devices, and people are its members ([ADR-0005](../../docs/decisions
 
 | | Owner | Admin | Member |
 |---|---|---|---|
-| See the home and who is in it | ✓ | ✓ | ✓ |
+| See the home, who is in it, and its devices | ✓ | ✓ | ✓ |
 | Change the home's name, time zone and languages | ✓ | ✓ | |
+| Add and remove devices | ✓ | ✓ | |
 | Invite people, and add profiles | ✓ | ✓ | |
 | Rename or remove members and profiles | ✓ | ✓ | |
 | Rename or remove an admin, and change a person's role | ✓ | | |
@@ -343,8 +348,95 @@ Deleting is for good, so the owner signs in again first, as to delete the accoun
 
 - **The owner must be the home's last person with an account.** Otherwise the cloud answers `409` `owns_home_with_members`: the others leave, or the owner removes them or hands the home over, first.
 - **It deletes** the home, its profiles, its invitations, and everything the cloud keeps there for it and its people ([ADR-0005](../../docs/decisions/0005-homes.md), PRIV-4). The owner's account stays.
-- **It revokes its devices' registrations** (SEC-3). A connected device gets `bye` `revoked` on [the cloud link](../cloud/README.md), and every one of them then offers set-up (PROV-3).
+- **It revokes its devices' registrations** (SEC-3). A connected device gets `bye` `revoked` on [the cloud link](../cloud/README.md), and every one of them then offers set-up (PROV-3), as when [a device is removed](#removing-a-device).
 - **The ID token** must verify as for deleting the account. Otherwise the cloud answers `403` `recent_sign_in_required`.
+
+## Devices
+
+A home owns its devices ([ADR-0005](../../docs/decisions/0005-homes.md)). Set-up registers one into a home: the cloud gives the app a challenge, the device signs its registration with it, and the app relays the registration ([ADR-0012](../../docs/decisions/0012-registering-devices.md)).
+
+```mermaid
+sequenceDiagram
+    participant D as Device
+    participant A as App
+    participant C as ai-cloud
+    Note over D,A: set-up's session, which the code on the device's screen secures
+    A->>C: POST /app/v1/homes/{home_id}/device-challenges
+    C->>A: a challenge, and the address devices use
+    A->>D: register: the challenge, the address
+    D->>A: registration: signed by its key
+    A->>C: POST /app/v1/homes/{home_id}/devices: the registration
+    C->>A: the device, in the home
+    A->>D: finish
+    D->>C: POST /device/token, with an assertion (the cloud link)
+    C->>D: an access token: the device is bound
+    A->>C: GET /app/v1/homes/{home_id}/devices/{device_id}, until it is connected
+```
+
+### Adding a device
+
+**The challenge:** `POST /app/v1/homes/{home_id}/device-challenges`, for the owner and admins, with no body, answers `201`:
+
+```json
+{"challenge": "_78Ey8sWPuFZRoui3_Hd6FOKfv6icQkNhNBoYoR_uRw", "server": "https://cloud.example", "expires_in": 300}
+```
+
+- **`challenge`** is 32 random bytes, base64url without padding, for this home and the account that asks. It registers one device, within `expires_in` seconds.
+- **`server`** is the address that devices use, as the cloud's configuration names it. It may not be the app's, as on a developer's network. The app passes it on as it is.
+- **The app asks for one just before set-up's `register`** ([the set-up protocol](../setup/README.md#requests-and-answers)): once the device has joined a network that reaches the Internet, and taken the home's languages and time zone.
+- **No `Idempotency-Key`:** a retry makes another challenge, and the first expires unused, as for invitations.
+
+**The registration:** the app sends the device `register`, with `challenge` and `server`. The device signs its registration ([set-up](../setup/README.md#the-registration)), and the app relays it: `POST /app/v1/homes/{home_id}/devices`, for the owner and admins, with an `Idempotency-Key`:
+
+```json
+{"registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIs..."}
+```
+
+The cloud answers `201` with the device, now in the home:
+
+```json
+{"id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5", "connected": false, "create_time": "2026-11-05T09:00:03Z"}
+```
+
+- **The cloud checks the registration** as set-up says ([The registration](../setup/README.md#the-registration)):
+  - its signature, with the key it carries, a public P-256 key: a `jwk` with a private part, `d`, fails;
+  - its `aud`, which is the `server` that the challenge gave;
+  - its `iss` and `sub`, the same UUID. The cloud compares identifiers as UUIDs, whatever the case of their letters ([RFC 9562](https://www.rfc-editor.org/rfc/rfc9562), §4);
+  - its `nonce`, which is a challenge that the cloud issued for this home, to this account, unexpired and unused;
+  - and the account, which must still be allowed to add devices to the home.
+- **A challenge works once:** the first registration that presents it uses it, whether or not the cloud then registers the device. A retry with the same `Idempotency-Key` gets the first answer.
+- **A registration that fails** gets `400` `registration_invalid`. The cloud does not say which check failed; `detail` may, for logs. The app gets a new challenge, has the device sign again in the same session, and tries once more.
+- **What binds the device to the home** is the cloud's record of its identifier and its key, with the key's thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)), which the device's assertions name as `kid` ([the cloud link](../cloud/README.md#tokens-from-the-server)). The device belongs to the home, and stays when the person who added it leaves.
+- **The same device, already in this home** with this identifier and this key, gets `200` with the device. One that lost its state registers again, and so learns its server again.
+- **Any other key or identifier that the cloud already holds** gets `409` `device_taken`: the device is in another home, or its key or its identifier is another device's. That home's owner or an admin removes the device, or the device is reset: a reset gives it a new key and a new identifier ([ai-robot ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md)).
+- **A new device, in a home with `devices_per_home` devices,** gets `409` `device_limit_reached`.
+
+**Then the device connects.** The app sends set-up's `finish` once the cloud has answered. The device asks the cloud for a token ([the cloud link](../cloud/README.md#tokens-from-the-server)), and is bound once one comes.
+- **The app reads the device until `connected` is true.** It waits at least the cloud link's `reconnect_max`, the longest that a device waits between two requests for a token: one that asked before the cloud held its key may wait that long before it asks again.
+- **A device that never connects** stays in the home, not connected, until it is removed.
+
+### Reading a home's devices
+
+- **Listing:** `GET /app/v1/homes/{home_id}/devices`, for anyone in the home, in pages, as sessions are: `{"devices": […], "next_page_token": ""}`.
+- **Reading one:** `GET /app/v1/homes/{home_id}/devices/{device_id}`:
+
+  ```json
+  {"id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5", "kind": "robot", "model": "concept-v0", "software": "0.4.0",
+   "connected": true, "create_time": "2026-11-05T09:00:03Z"}
+  ```
+
+- **`id`** is the identifier that the device made itself ([ADR-0004](../../docs/decisions/0004-conventions.md)).
+- **`kind`, `model` and `software`** are those of the device's latest `hello` on [the cloud link](../cloud/README.md#hello), and are absent until its first. A kind the app does not know, it shows as a device.
+- **`connected`** says whether the device's control channel is open now.
+- **`create_time`** is when the device was registered into the home.
+
+### Removing a device
+
+`DELETE /app/v1/homes/{home_id}/devices/{device_id}`, for the owner and admins, answers `204`. It revokes the device's registration (SEC-3):
+- **The cloud** ends the device's session with `bye` `revoked`, refuses its tokens and its assertions from then on, and forgets its key. It deletes what it keeps of the device. What belongs to the home and its people stays ([ADR-0005](../../docs/decisions/0005-homes.md), decision 4).
+- **The device** offers set-up (PROV-3): at once if it is connected, otherwise when the token endpoint next answers it `invalid_client`. Set up again, it is a new device to the cloud, in any home.
+- **Removing does not erase the device.** To give it to someone else, its owner resets it (PROV-4).
+- **Deleting the home,** or the account that takes it along, removes each of its devices the same way.
 
 ## Errors
 
@@ -379,6 +471,9 @@ Deleting is for good, so the owner signs in again first, as to delete the accoun
   | `home_limit_reached` | 409 | The account is in as many homes as it may be |
   | `member_limit_reached` | 409 | The home has as many people as it may have |
   | `invitation_limit_reached` | 409 | The home has as many open invitations as it may have |
+  | `registration_invalid` | 400 | The device's registration does not verify, or its challenge is unknown, expired, used, or another account's or home's |
+  | `device_taken` | 409 | The device is in another home, or its key or its identifier is another device's |
+  | `device_limit_reached` | 409 | The home has as many devices as it may have |
 
 - **Limits:** a request over a limit gets `429`, with `Retry-After`.
 - **Text:** `detail` and `error_description` are for logs, in English. The app shows people texts of its own catalogs, chosen by status and type.
@@ -397,18 +492,21 @@ The cloud's development environment signs in test people without Google or Apple
 
 How this version meets the [requirements](../cloud/requirements.md#9-security):
 - **SEC-1:** TLS to the cloud. Plain HTTP only to a developer's own machine.
-- **SEC-3:** deleting a home revokes its devices' registrations.
+- **SEC-3:** a device is registered only at set-up, by a person allowed to add devices to the home, with a challenge for that home and that person. Removing the device, or deleting its home, revokes it.
 - **SEC-6:** every request is confined to the account its token names, and to that account's homes. A home the account is not in answers `404`.
+- **PROV-2:** the cloud trusts a device's key because the owner's app relays it from a session that the code on the device's screen secures, and the device signs the cloud's challenge with it. There is no attestation: the cloud cannot tell a key in a TPM from one in a file ([ADR-0012](../../docs/decisions/0012-registering-devices.md)).
 - **SEC-12:**
   - nonces are single-use and expire;
+  - so are challenges, and each belongs to one home and one account: a registration cannot be replayed, or used elsewhere;
   - access tokens expire within `access_lifetime`;
   - refresh tokens rotate, and one presented again ends its session, but for a retry just after its first use, while its replacement is unused. A retry continues the same session, whose replacement then stops working, so that it never has two refresh tokens that work;
   - an invitation's code works once, expires, and is kept only as a hash. Removing or demoting the person who made it revokes it, so that nobody keeps a way back in.
-- **SEC-14, SEC-15:** the cloud validates every body against `schema.json`, and limits rates, the nonces' and the invitation codes' above all.
+- **SEC-14, SEC-15:** the cloud validates every body against `schema.json`, and limits rates, the nonces', the invitation codes' and the challenges' above all.
 - **PRIV-4:** the person deletes the account, and with it everything that is theirs, from the app or the web. A fresh sign-in comes first, so that a phone left unlocked cannot do it. Leaving a home, or being removed from it, deletes what belongs to the person there, and deleting a home deletes all it holds.
 - **PRIV-7:** accounts are for adults. The cloud keeps no birth date and has no child accounts. What the cloud may keep for a profile is settled with the law on personal data (ai-cloud ADR-0006), before the first real users.
 - **People in a home see each other's names, and nothing else.**
-- **Tokens are never logged.** Neither side logs an ID token, an access token, a refresh token, an authorization code, a nonce or an invitation's code. The cloud keeps Apple's refresh tokens encrypted.
+- **PROV-4:** removing a device does not erase what the device keeps. A new owner gets it after a reset.
+- **Tokens are never logged.** Neither side logs an ID token, an access token, a refresh token, an authorization code, a nonce, an invitation's code, a challenge or a registration. The cloud keeps Apple's refresh tokens encrypted.
 
 ## Settings
 
@@ -428,6 +526,9 @@ The values below are starting points, not part of the protocol: the cloud sets i
 | `invitation_lifetime` | 3 days | How long an invitation's code is valid |
 | `invitations_per_home` | 10 | How many open invitations a home may have |
 | `invitation_rate` | 10 a minute, for each account | How many codes an account may try |
+| `challenge_lifetime` | 300 s, as AWS IoT's claim certificates | How long a challenge to register a device is valid |
+| `challenge_rate` | 10 a minute, for each account | How many challenges an account gets |
+| `devices_per_home` | 300, as SmartThings | How many devices a home may have |
 
 ## Changing the protocol
 
@@ -436,7 +537,11 @@ The values below are starting points, not part of the protocol: the cloud sets i
 
 ## References
 
-- IETF: [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) (OAuth 2.0), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) (bearer tokens), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009) (revocation), [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693) (token exchange), [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) (OAuth 2.0 security), [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Problem Details), [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP semantics), [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562) (UUIDv7), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) (URIs), and [the Idempotency-Key header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) (draft 08, read 2026-11-03).
+- IETF: [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) (OAuth 2.0), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) (bearer tokens), [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009) (revocation), [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693) (token exchange), [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) (OAuth 2.0 security), [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Problem Details), [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP semantics), [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562) (UUIDv7), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986) (URIs), [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519) and [RFC 7638](https://www.rfc-editor.org/rfc/rfc7638) (JWTs, and keys' thumbprints), and [the Idempotency-Key header](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/) (draft 08, read 2026-11-03).
+- Registering a device, read 2026-11-05 ([ADR-0012](../../docs/decisions/0012-registering-devices.md) compares more):
+  - W3C: [Web Authentication, Level 3](https://www.w3.org/TR/webauthn-3/#sctn-registering-a-new-credential), §7.1: the challenge, and a credential already known;
+  - AWS IoT: [provisioning by trusted user](https://docs.aws.amazon.com/iot/latest/developerguide/provision-wo-cert.html#trusted-user), whose claim certificate "expires after five minutes";
+  - Samsung: [SmartThings](https://www.samsung.com/ca/apps/smartthings), "300 per location".
 - [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html): ID tokens and their nonce.
 - Google: [Sign in with Google with Credential Manager](https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation). Apple: [Sign in with Apple](https://developer.apple.com/documentation/sign_in_with_apple).
 - Google's [API Improvement Proposals](https://google.aip.dev/): resources, paging (AIP-158), updates and ETags (AIP-134, AIP-154), custom methods such as `:accept` (AIP-136).
