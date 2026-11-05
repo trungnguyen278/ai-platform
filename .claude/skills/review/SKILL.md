@@ -38,6 +38,10 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **Conventions** ([ADR-0004](../../../docs/decisions/0004-conventions.md)): UUIDs, RFC 3339 instants, durations in seconds, IANA time zones for civil times, snake_case fields, Problem Details for HTTPS errors.
 - **Compatibility** ([ADR-0003](../../../docs/decisions/0003-compatibility.md)): a breaking change is a new major, with a plan for both majors to run side by side; the update path does not change.
 
+### The check
+
+- **Patterns as ECMA-262 reads them:** its `$` is the very end, where Python's also matches before a last newline. `tools/check.py` validates against `with_ecma_ends(schema)`, a copy of the schema that reaches every place jsonschema reads a regular expression, the keys of `patternProperties` included. A new validation in the check goes through it, and plants a value ending in a newline that it must refuse. ai-cloud and ai-robot read only `pattern` so: a protocol that comes to use `patternProperties` needs their reading of its keys too.
+
 ### A decision
 
 - Alternatives considered, each with why not; sources, dated; `Proposed` unless explicitly agreed; the index updated.

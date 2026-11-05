@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """Check the protocols: every schema is valid JSON Schema, its patterns keep to ADR-0010,
-every example follows its schema, and a new minor version still accepts the examples of the
-version before it. Check the catalogs too: their schema, their examples, and the copy of
-MF2's test suite.
+every example follows its schema, whose patterns are read as ECMA-262 reads them, and a new
+minor version still accepts the examples of the version before it. Check the catalogs too:
+their schema, their examples, and the copy of MF2's test suite.
 
     python tools/check.py
 
@@ -30,10 +30,48 @@ VERSION = re.compile(r"version (\d+)\.(\d+)")  # in each schema's title (CONTRIB
 TAG = re.compile(r"^(?P<name>[a-z]+)/v(?P<major>\d+)\.(?P<minor>\d+)$")
 
 
+def ecma_end(pattern: str) -> str:
+    r"""`pattern` for Python's `re`, whose `$` also matches before a last newline: JSON
+    Schema's patterns are ECMA-262's, whose `$` matches at the very end only, as Python's `\Z`
+    does. Only a final `$`, unescaped, is an anchor here: ADR-0010 allows no other. ai-cloud
+    and ai-robot read patterns with the same function."""
+    body = pattern.removesuffix("$")
+    if body == pattern:
+        return pattern
+    backslashes = len(body) - len(body.rstrip("\\"))
+    return pattern if backslashes % 2 else body + r"\Z"
+
+
+def with_ecma_ends(node: Any) -> Any:
+    """A copy of `node`, a schema, whose regular expressions end where ECMA-262 ends them:
+    its patterns, and the keys of its patternProperties, found as `schema_patterns` finds
+    them. jsonschema reads them with Python's `re`, in `pattern` and `patternProperties` and
+    in the lookups of `additionalProperties` and `unevaluatedProperties`, and takes no other
+    engine (python-jsonschema#1142): only a copy of the schema reaches all four."""
+    if isinstance(node, list):
+        return [with_ecma_ends(value) for value in node]
+    if not isinstance(node, dict):
+        return node
+    copy: dict[str, Any] = {}
+    for key, value in node.items():
+        if key == "pattern" and isinstance(value, str):
+            copy[key] = ecma_end(value)
+        elif key == "patternProperties" and isinstance(value, dict):
+            copy[key] = {
+                ecma_end(expression): with_ecma_ends(subschema)
+                for expression, subschema in value.items()
+            }
+        else:
+            copy[key] = with_ecma_ends(value)
+    return copy
+
+
 def validators(schema: dict[str, Any]) -> dict[str, Draft202012Validator]:
-    """One validator per sender, for the `from_<sender>` definitions of the schema."""
+    """One validator per sender, for the `from_<sender>` definitions of the schema, each
+    reading its patterns as ECMA-262 does."""
+    ecma = with_ecma_ends(schema)
     return {
-        name.removeprefix("from_"): Draft202012Validator({**schema, "$ref": f"#/$defs/{name}"})
+        name.removeprefix("from_"): Draft202012Validator({**ecma, "$ref": f"#/$defs/{name}"})
         for name in schema.get("$defs", {})
         if name.startswith("from_")
     }
@@ -52,6 +90,40 @@ def check_examples(where: str, examples: dict[str, Any], schema: dict[str, Any])
             continue
         for error in by_sender[sender].iter_errors(step["message"]):
             problems.append(f"{where}: {error.message} (at {list(error.absolute_path)})")
+    return problems
+
+
+# Values that the examples' check must accept, and must refuse, against the schema beside
+# each: ECMA-262's `$` matches at the very end only (ECMA-262, §22.2.2.4), where Python's also
+# matches before a last newline. The JSON Schema Test Suite has the second case, in
+# optional/ecmascript-regex.json.
+PLANTED_VALUES: tuple[tuple[dict[str, Any], Any, bool], ...] = (
+    ({"pattern": "^[a-z]+$"}, "vi", True),
+    ({"pattern": "^[a-z]+$"}, "vi\n", False),
+    ({"pattern": "^cost\\$"}, "cost$", True),  # an escaped dollar is a dollar
+    ({"pattern": "^a\\\\$"}, "a\\\n", False),  # an escaped backslash, then the end
+    ({"anyOf": [{"pattern": "^[a-z]+$"}]}, "vi\n", False),
+    # Properties named `pattern` and `patternProperties`, whose values are subschemas.
+    (
+        {"properties": {"pattern": {"pattern": "^[a-z]+$"}, "patternProperties": True}},
+        {"pattern": "vi\n"},
+        False,
+    ),
+    ({"patternProperties": {"^[a-z]+$": {}}, "additionalProperties": False}, {"vi\n": 1}, False),
+    ({"patternProperties": {"^x": {"pattern": "^[a-z]+$"}}}, {"x": "vi\n"}, False),
+)
+
+
+def check_reading() -> list[str]:
+    """Problems with how the examples' check reads a schema's patterns: it must accept and
+    refuse the planted values."""
+    problems = []
+    for schema, value, valid in PLANTED_VALUES:
+        exchange = {"messages": [{"from": "planted", "message": value}]}
+        refused = check_examples("planted", exchange, {"$defs": {"from_planted": schema}})
+        if bool(refused) == valid:
+            verb = "refuses" if valid else "accepts"
+            problems.append(f"tools/check.py: {verb} {value!r} against {schema}")
     return problems
 
 
@@ -84,7 +156,7 @@ def check_catalogs() -> list[str]:
     IDs that the English source has, and every file of MF2's test suite is JSON."""
     schema = json.loads((CATALOGS / "schema.json").read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
-    validator = Draft202012Validator(schema)
+    validator = Draft202012Validator(with_ecma_ends(schema))
     examples = {
         path.stem: json.loads(path.read_text(encoding="utf-8"))
         for path in sorted((CATALOGS / "examples").glob("*.json"))
@@ -93,6 +165,8 @@ def check_catalogs() -> list[str]:
     for tag, catalog in examples.items():
         for error in validator.iter_errors(catalog):
             problems.append(f"catalogs/examples/{tag}.json: {error.message}")
+    if validator.is_valid({"setup.code.title\n": "Set-up"}):
+        problems.append("tools/check.py: accepts a message ID that ends in a newline")
     source = examples.get("en")
     if source is None:
         problems.append("catalogs/examples: no en.json, the source")
@@ -340,6 +414,7 @@ def check_patterns(schemas: dict[str, Any]) -> list[str]:
 
 def main() -> int:
     problems: list[str] = check_catalogs()
+    problems += check_reading()
     schemas = [*sorted(PROTOCOLS.glob("*/schema.json")), CATALOGS / "schema.json"]
     problems += check_patterns(
         {
