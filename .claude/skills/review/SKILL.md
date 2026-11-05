@@ -27,6 +27,9 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **Versions:** the bump matches the change. Could an old side still talk to a new one, as the version promises? A minor version that makes a field required, narrows a range or changes a meaning is a major one.
 - **Bounds:** every new string has a length, every number a range, every list a size, so that each side can refuse what is too big (SEC-14, SEC-15). Numbers are finite: JSON has no NaN.
 - **Unknowns:** what does each side do with a message, a field or a value it does not know? The specification says.
+- **Dispatch:** in `from_app` and `from_cloud`, a new body must not set off another definition's `if`, and the catch-all must leave it out: a device's `kind` would have read it as a member. Plant good and broken bodies through the dispatch, not only against their own definition.
+- **Limits and retries:** a limit refuses only what a request adds. A retry, or a thing already there, still gets its answer at the limit.
+- **Matching:** a thing found by one of its keys must match the others too, such as a device's key and its identifier. Identifiers compare as their type does: a UUID in any case.
 - **Errors:** each failure has a code, and the specification says which side sends it and what the other then does.
 - **Devices:** nothing assumes one product; what one kind of device needs is a capability it declares.
 - **Security:** nothing secret travels in clear or reaches a log; replays have no effect (SEC-12); the requirements in `protocols/cloud/requirements.md` §9 still hold.

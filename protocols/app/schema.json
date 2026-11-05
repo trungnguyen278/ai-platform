@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "The app API, ai-app and ai-cloud, version 1.3",
+  "title": "The app API, ai-app and ai-cloud, version 1.4",
   "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {
@@ -112,6 +112,21 @@
       "type": "string",
       "pattern": "^[A-Za-z0-9_-]{43}$",
       "description": "32 random bytes, base64url without padding"
+    },
+    "challenge": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$",
+      "description": "A challenge to register a device: 32 random bytes, base64url without padding"
+    },
+    "device_kind": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$",
+      "description": "robot, or another kind of device: the app shows one it does not know as a device"
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]{1,128}$",
+      "description": "A device's model, as its maker names it"
     },
     "token_exchange_request": {
       "description": "Form fields of POST /app/token, exchanging a provider's ID token (README, The exchange)",
@@ -303,6 +318,21 @@
         },
         "id_token": {
           "$ref": "#/$defs/token"
+        }
+      }
+    },
+    "device_registration": {
+      "description": "POST /app/v1/homes/{home_id}/devices: the registration that the device signed at set-up (README, Adding a device)",
+      "type": "object",
+      "required": [
+        "registration"
+      ],
+      "properties": {
+        "registration": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+          "maxLength": 4096,
+          "description": "A JWT, as set-up's registration answer carries it (protocols/setup/README.md, The registration)"
         }
       }
     },
@@ -708,6 +738,85 @@
         }
       }
     },
+    "device_challenge": {
+      "description": "What POST /app/v1/homes/{home_id}/device-challenges answers (README, Adding a device)",
+      "type": "object",
+      "required": [
+        "challenge",
+        "server",
+        "expires_in"
+      ],
+      "properties": {
+        "challenge": {
+          "$ref": "#/$defs/challenge"
+        },
+        "server": {
+          "type": "string",
+          "pattern": "^https?://",
+          "maxLength": 2048,
+          "description": "The address that devices use, which the app gives the device in set-up's register"
+        },
+        "expires_in": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Seconds"
+        }
+      }
+    },
+    "device": {
+      "description": "A device in a home (README, Devices). kind, model and software come with its first session on the cloud link.",
+      "type": "object",
+      "required": [
+        "id",
+        "connected",
+        "create_time"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "kind": {
+          "$ref": "#/$defs/device_kind"
+        },
+        "model": {
+          "$ref": "#/$defs/model"
+        },
+        "software": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "connected": {
+          "type": "boolean",
+          "description": "Whether its control channel is open now"
+        },
+        "create_time": {
+          "$ref": "#/$defs/instant"
+        }
+      }
+    },
+    "device_list": {
+      "description": "What GET /app/v1/homes/{home_id}/devices answers: a page (README, Devices)",
+      "type": "object",
+      "required": [
+        "devices",
+        "next_page_token"
+      ],
+      "properties": {
+        "devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/device"
+          },
+          "maxItems": 50
+        },
+        "next_page_token": {
+          "type": "string",
+          "maxLength": 1024
+        }
+      }
+    },
     "problem": {
       "description": "Problem Details (RFC 9457), as the API answers an error (README, Errors)",
       "type": "object",
@@ -864,6 +973,16 @@
         },
         {
           "if": {
+            "required": [
+              "registration"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/device_registration"
+          }
+        },
+        {
+          "if": {
             "not": {
               "anyOf": [
                 {
@@ -904,6 +1023,11 @@
                 {
                   "required": [
                     "code"
+                  ]
+                },
+                {
+                  "required": [
+                    "registration"
                   ]
                 }
               ]
@@ -1039,7 +1163,12 @@
           "if": {
             "required": [
               "kind"
-            ]
+            ],
+            "not": {
+              "required": [
+                "connected"
+              ]
+            }
           },
           "then": {
             "$ref": "#/$defs/member"
@@ -1074,6 +1203,36 @@
           },
           "then": {
             "$ref": "#/$defs/invitation_preview"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "challenge"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/device_challenge"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "connected"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/device"
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "devices"
+            ]
+          },
+          "then": {
+            "$ref": "#/$defs/device_list"
           }
         }
       ]
