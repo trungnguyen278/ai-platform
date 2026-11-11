@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "The app API, ai-app and ai-cloud, version 1.4",
+  "title": "The app API, ai-app and ai-cloud, version 1.5",
   "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {
@@ -333,6 +333,22 @@
           "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
           "maxLength": 4096,
           "description": "A JWT, as set-up's registration answer carries it (protocols/setup/README.md, The registration)"
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "The device's own name, from set-up's info, which becomes its name in the home (README, Adding a device). Since 1.5."
+        }
+      }
+    },
+    "device_update": {
+      "description": "PATCH /app/v1/homes/{home_id}/devices/{device_id}: a new name (README, Naming a device). from_app reads it as a home_update, whose name is the same.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
         }
       }
     },
@@ -765,7 +781,7 @@
       }
     },
     "device": {
-      "description": "A device in a home (README, Devices). kind, model and software come with its first session on the cloud link.",
+      "description": "A device in a home (README, Devices). kind, model and software come with its first session on the cloud link. name and etag come from 1.5: name is absent only for a device that an app of 1.4 registered, until someone names it.",
       "type": "object",
       "required": [
         "id",
@@ -775,6 +791,9 @@
       "properties": {
         "id": {
           "$ref": "#/$defs/uuid"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
         },
         "kind": {
           "$ref": "#/$defs/device_kind"
@@ -793,6 +812,9 @@
         },
         "create_time": {
           "$ref": "#/$defs/instant"
+        },
+        "etag": {
+          "$ref": "#/$defs/etag"
         }
       }
     },
@@ -859,7 +881,7 @@
       }
     },
     "from_app": {
-      "description": "A request's body, told apart by its fields",
+      "description": "A request's body, told apart by its fields. A shape that two requests share is read by one definition that agrees with both: a device_update as a home_update, a profile_create or a member's display_name alone as an account_update. A device_registration's name also meets home_update's, which is the same.",
       "type": "object",
       "allOf": [
         {

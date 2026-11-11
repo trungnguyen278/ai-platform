@@ -1,5 +1,5 @@
 {
-  "description": "An owner adds a robot to her home at set-up, with a challenge that the robot's key signs. The answer is lost, and the retry gets it again. The app waits until the robot connects. A member sees the home's devices, and cannot add one. The robot loses its state: another home cannot take it, and the first takes it again. The owner removes it, and, set up again, it comes back as a new device. The registrations' signatures are real: each verifies with the key in its header, made for this example, whose thumbprint is A9J9ACDRqGsoYjAJJK-upx23ibV7l4Bofp0C6uidqC8.",
+  "description": "An owner adds a robot to her home at set-up, with a challenge that the robot's key signs. The answer is lost, and the retry gets it again. The robot's registration brings its own name, which the owner changes while the app waits until the robot connects. A member sees the home's devices, and cannot add or rename one. The robot loses its state: another home cannot take it, and the first takes it again, with the name it had there. The owner removes it, and, set up again, it comes back as a new device. The registrations' signatures are real: each verifies with the key in its header, made for this example, whose thumbprint is A9J9ACDRqGsoYjAJJK-upx23ibV7l4Bofp0C6uidqC8.",
   "messages": [
     {
       "note": "Linh owns the home, and has signed in, as in sign-in.json. She sets a robot up over Bluetooth, as in set-up's session.json: it has joined the home's Wi-Fi network, which reaches the Internet, and taken the home's languages and time zone."
@@ -27,7 +27,8 @@
         "Idempotency-Key": "\"01a1aaef-c638-75b0-9fe9-3e25b48c585d\""
       },
       "message": {
-        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg"
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg",
+        "name": "Robot"
       }
     },
     {
@@ -35,8 +36,10 @@
       "status": 201,
       "message": {
         "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "name": "Robot",
         "connected": false,
-        "create_time": "2026-11-05T09:00:03Z"
+        "create_time": "2026-11-05T09:00:03Z",
+        "etag": "W/\"1\""
       }
     },
     {
@@ -49,7 +52,8 @@
         "Idempotency-Key": "\"01a1aaef-c638-75b0-9fe9-3e25b48c585d\""
       },
       "message": {
-        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg"
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg",
+        "name": "Robot"
       }
     },
     {
@@ -57,8 +61,10 @@
       "status": 201,
       "message": {
         "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "name": "Robot",
         "connected": false,
-        "create_time": "2026-11-05T09:00:03Z"
+        "create_time": "2026-11-05T09:00:03Z",
+        "etag": "W/\"1\""
       }
     },
     {
@@ -73,8 +79,34 @@
       "status": 200,
       "message": {
         "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "name": "Robot",
         "connected": false,
-        "create_time": "2026-11-05T09:00:03Z"
+        "create_time": "2026-11-05T09:00:03Z",
+        "etag": "W/\"1\""
+      }
+    },
+    {
+      "note": "While the robot connects, the app shows the name that its registration brought, \"Robot\", pre-filled. Linh calls it \"Bi\", so the app renames the device, with its `etag`."
+    },
+    {
+      "from": "app",
+      "request": "PATCH /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+      "headers": {
+        "If-Match": "W/\"1\""
+      },
+      "message": {
+        "name": "Bi"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 200,
+      "message": {
+        "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "name": "Bi",
+        "connected": false,
+        "create_time": "2026-11-05T09:00:03Z",
+        "etag": "W/\"2\""
       }
     },
     {
@@ -86,11 +118,13 @@
       "status": 200,
       "message": {
         "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "name": "Bi",
         "kind": "robot",
         "model": "concept-v0",
         "software": "0.4.0",
         "connected": true,
-        "create_time": "2026-11-05T09:00:03Z"
+        "create_time": "2026-11-05T09:00:03Z",
+        "etag": "W/\"2\""
       }
     },
     {
@@ -103,7 +137,8 @@
         "Idempotency-Key": "\"01a1aaf4-4e60-72c4-b96e-4b5309dcc7fe\""
       },
       "message": {
-        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg"
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6Il83OEV5OHNXUHVGWlJvdWkzX0hkNkZPS2Z2NmljUWtOaE5Cb1lvUl91UnciLCJqdGkiOiJLSTJQem1YUUpEVkctbzFjIn0.27rRfHCYLYMW59Bm8UAm4Wlscxb8I_nza8N83NggBxKvvYBICmwIuUqmug-TvkbDydqgGNGeBeTau2r4Y6arMg",
+        "name": "Robot"
       }
     },
     {
@@ -117,7 +152,7 @@
       }
     },
     {
-      "note": "Minh, a member of the home, sees its devices, and cannot add one."
+      "note": "Minh, a member of the home, sees its devices, and cannot add or rename one."
     },
     {
       "from": "app",
@@ -130,11 +165,13 @@
         "devices": [
           {
             "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+            "name": "Bi",
             "kind": "robot",
             "model": "concept-v0",
             "software": "0.4.0",
             "connected": true,
-            "create_time": "2026-11-05T09:00:03Z"
+            "create_time": "2026-11-05T09:00:03Z",
+            "etag": "W/\"2\""
           }
         ],
         "next_page_token": ""
@@ -152,6 +189,26 @@
         "title": "Role required",
         "status": 403,
         "detail": "A member cannot add devices."
+      }
+    },
+    {
+      "from": "app",
+      "request": "PATCH /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+      "headers": {
+        "If-Match": "W/\"2\""
+      },
+      "message": {
+        "name": "Robot"
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 403,
+      "message": {
+        "type": "/app/v1/problems/role_required",
+        "title": "Role required",
+        "status": 403,
+        "detail": "A member cannot rename devices."
       }
     },
     {
@@ -177,7 +234,8 @@
         "Idempotency-Key": "\"01a1cf33-38b8-7f62-a1e7-b33278cfaabf\""
       },
       "message": {
-        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6ImlmQXNscURHREZRaWdHWDBodWwzREhZSzFLUmRnM2VTMXF2N0NSbk5aaHciLCJqdGkiOiIwR1RMeG9mRFloNVFfZDliIn0.n5-I0Ck3oAhH3YqDSdj4_1tw-Uu1Hx73YphMb2eeF7jcn005tN97guPgwrUHr_x1lXocQRHKf3l21GQhLzWk7g"
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6ImlmQXNscURHREZRaWdHWDBodWwzREhZSzFLUmRnM2VTMXF2N0NSbk5aaHciLCJqdGkiOiIwR1RMeG9mRFloNVFfZDliIn0.n5-I0Ck3oAhH3YqDSdj4_1tw-Uu1Hx73YphMb2eeF7jcn005tN97guPgwrUHr_x1lXocQRHKf3l21GQhLzWk7g",
+        "name": "Robot"
       }
     },
     {
@@ -191,7 +249,7 @@
       }
     },
     {
-      "note": "So she sets it up in the first home again, where the cloud already holds it. The robot learns its server again."
+      "note": "So she sets it up in the first home again, where the cloud already holds it. The robot learns its server again. The registration brings the robot's own name, but the device keeps the one it has in the home."
     },
     {
       "from": "app",
@@ -213,7 +271,8 @@
         "Idempotency-Key": "\"01a1cf37-cc98-798e-ab37-492fe6c023d9\""
       },
       "message": {
-        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6ImhrS2xNRExTbDVBQk9EWUQ1dXZEV3QwVHpmOGxqcmtKb1pxT0FWaUpNR2ciLCJqdGkiOiJyZnl1bGxsNVRYNzR4dEx2In0.x-nKojqYE6fHIQDyCDBAsfGmUhckEiqzgTyD9u4nm7PQHlzMDD8HUyQsSbP-Ft5FtaxNuzjo-mESPTVq3bNrnA"
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6ImhrS2xNRExTbDVBQk9EWUQ1dXZEV3QwVHpmOGxqcmtKb1pxT0FWaUpNR2ciLCJqdGkiOiJyZnl1bGxsNVRYNzR4dEx2In0.x-nKojqYE6fHIQDyCDBAsfGmUhckEiqzgTyD9u4nm7PQHlzMDD8HUyQsSbP-Ft5FtaxNuzjo-mESPTVq3bNrnA",
+        "name": "Robot"
       }
     },
     {
@@ -221,11 +280,13 @@
       "status": 200,
       "message": {
         "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "name": "Bi",
         "kind": "robot",
         "model": "concept-v0",
         "software": "0.4.0",
         "connected": false,
-        "create_time": "2026-11-05T09:00:03Z"
+        "create_time": "2026-11-05T09:00:03Z",
+        "etag": "W/\"2\""
       }
     },
     {
@@ -253,7 +314,7 @@
       }
     },
     {
-      "note": "Set up again, the robot comes back as a new device: the cloud forgot its key."
+      "note": "Set up again, the robot comes back as a new device: the cloud forgot its key, and its name. Linh keeps the name that the robot gives itself, so the app sends nothing more."
     },
     {
       "from": "app",
@@ -275,7 +336,8 @@
         "Idempotency-Key": "\"01a1cf45-8838-7498-9522-9f32b674b230\""
       },
       "message": {
-        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6IlZ0REltT2IxMEhjS3pJWm5BeWswQlFfeGRTTWl0clVsZVotbWVfOVg4RVkiLCJqdGkiOiJWcUNOT3l0MllTdkZRUlNnIn0.YzxyBGR7tP5DPExmZk-35k5ljGhx3dPTXnwq3sjbVOfzmDrRBeWOn6J7GawY3p3IVxrzCqmjxejy_xm7ZR6dCQ"
+        "registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIsImt0eSI6IkVDIiwieCI6IllvR0ZpOUYwb2hnVzFEYXBnLU5WTjZmQTRMckZuZG5sYnV3NF9YRUp6SlEiLCJ5IjoiTVdTdkdvWHBxTTc2WFlEckV1LUJQUUlqelloazJfSm9EREEyX2lhSlAzYyJ9LCJ0eXAiOiJkZXZpY2UtcmVnaXN0cmF0aW9uK2p3dCJ9.eyJpc3MiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJzdWIiOiI0YTRjZTRiZC0yODUzLTQzZDgtOThkYy0zZGMwNmRhZWM2ZTUiLCJhdWQiOiJodHRwczovL2Nsb3VkLmV4YW1wbGUiLCJub25jZSI6IlZ0REltT2IxMEhjS3pJWm5BeWswQlFfeGRTTWl0clVsZVotbWVfOVg4RVkiLCJqdGkiOiJWcUNOT3l0MllTdkZRUlNnIn0.YzxyBGR7tP5DPExmZk-35k5ljGhx3dPTXnwq3sjbVOfzmDrRBeWOn6J7GawY3p3IVxrzCqmjxejy_xm7ZR6dCQ",
+        "name": "Robot"
       }
     },
     {
@@ -283,8 +345,10 @@
       "status": 201,
       "message": {
         "id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+        "name": "Robot",
         "connected": false,
-        "create_time": "2026-11-12T10:20:03Z"
+        "create_time": "2026-11-12T10:20:03Z",
+        "etag": "W/\"1\""
       }
     }
   ]
