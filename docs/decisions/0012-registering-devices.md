@@ -1,6 +1,6 @@
 # 0012 — Registering a device into a home: the cloud's challenge, signed by the device, relayed by the app
 
-- **Status:** Accepted
+- **Status:** Accepted. Its follow-up on a device's name in a home is settled by [ADR-0013](0013-setting-devices-up.md): the app asks for it at the end of set-up, pre-filled.
 - **Date:** 2026-11-05
 
 ## Context

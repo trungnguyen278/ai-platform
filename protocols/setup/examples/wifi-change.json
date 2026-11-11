@@ -1,0 +1,149 @@
+{
+  "description": "A device already bound, after its home's Wi-Fi network changed: someone asks on its screen to open set-up, and the app gives it the new network, without registering it again (ADR-0013). The exchange runs as in session.json, with this session's own code and salt, and is not repeated: these are the messages after it, as each side reads them (in the clear), numbered on from the hellos and the shares.",
+  "messages": [
+    {
+      "note": "The robot of session.json is bound to Linh's home. Her new router has a new network, so the robot cannot reach the cloud. She asks on its screen to open set-up, and the app runs the exchange with the code shown: the app's hello, share and confirm are its messages 1 to 3, and the robot's hello and share its 1 and 2."
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "info",
+        "seq": 4
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "info",
+        "seq": 3,
+        "reply_to": 4,
+        "device": {
+          "id": "6f1c2a9e-0d55-4c4b-9a43-1f0e8b2d7c11",
+          "name": "Robot",
+          "kind": "robot",
+          "model": "concept-v0",
+          "software": "0.4.0",
+          "languages": [
+            "vi",
+            "en"
+          ],
+          "time_zone": "Asia/Ho_Chi_Minh"
+        },
+        "bound": true,
+        "network": {
+          "state": "disconnected"
+        }
+      }
+    },
+    {
+      "note": "`bound` is true, and the robot's `id` is a device of Linh's home: the app asks the cloud for no challenge, and sends neither `configure` nor `register`. It offers the networks."
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "networks",
+        "seq": 5
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "networks",
+        "seq": 4,
+        "reply_to": 5,
+        "networks": [
+          {
+            "ssid": "Home 2",
+            "security": "wpa3",
+            "signal": 90,
+            "saved": false
+          },
+          {
+            "ssid": "Neighbours",
+            "security": "wpa2",
+            "signal": 35,
+            "saved": false
+          }
+        ]
+      }
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "join",
+        "seq": 6,
+        "ssid": "Home 2",
+        "password": "staple battery horse"
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "joined",
+        "seq": 5,
+        "reply_to": 6,
+        "network": {
+          "state": "connected",
+          "ssid": "Home 2",
+          "address": "192.168.2.17",
+          "internet": null
+        }
+      }
+    },
+    {
+      "note": "Whether the network reaches the Internet is not known yet, so the app asks for `info` again."
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "info",
+        "seq": 7
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "info",
+        "seq": 6,
+        "reply_to": 7,
+        "device": {
+          "id": "6f1c2a9e-0d55-4c4b-9a43-1f0e8b2d7c11",
+          "name": "Robot",
+          "kind": "robot",
+          "model": "concept-v0",
+          "software": "0.4.0",
+          "languages": [
+            "vi",
+            "en"
+          ],
+          "time_zone": "Asia/Ho_Chi_Minh"
+        },
+        "bound": true,
+        "network": {
+          "state": "connected",
+          "ssid": "Home 2",
+          "address": "192.168.2.17",
+          "internet": true
+        }
+      }
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "finish",
+        "seq": 8
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "finished",
+        "seq": 7,
+        "reply_to": 8
+      }
+    },
+    {
+      "note": "The robot closes set-up, and reaches its server over the new network, with the registration it had. The app sees it connected in the home."
+    }
+  ]
+}

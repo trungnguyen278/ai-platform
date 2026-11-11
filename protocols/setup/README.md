@@ -8,8 +8,9 @@ Version **2.0**:
 - It follows ai-robot's [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), accepted, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) into a home ([ADR-0005](../../docs/decisions/0005-homes.md)).
 - The app gets the challenge from the cloud, and relays the registration to it, through [the app API](../app/README.md#devices), from its version 1.4 ([ADR-0012](../../docs/decisions/0012-registering-devices.md)).
 - It meets the [requirements](../cloud/requirements.md) on set-up and ownership (PROV-1 to PROV-4), and SEC-3, SEC-5 and SEC-16.
+- The app runs it in the steps of [ADR-0013](../../docs/decisions/0013-setting-devices-up.md), which also give a device already bound another network, without registering it again ([How the app runs it](#how-the-app-runs-it)).
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12.
-- [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys.
+- [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys. It also holds a device already bound being given another network, from the end of its exchange.
 
 **Version notes:**
 - **2.0** speaks of devices: `device` in `info`, `device-registration+jwt`, and the labels `ai-platform/setup/2`. The challenge registers the device into a home ([ADR-0005](../../docs/decisions/0005-homes.md)). `configure` gives the device its first languages and time zone ([ADR-0002](../../docs/decisions/0002-languages.md)). Messages are numbered, `seq`, as in the cloud link 3.0 ([ADR-0004](../../docs/decisions/0004-conventions.md)).
@@ -59,6 +60,7 @@ These durations and counts are the device's settings; the values above are the r
 
 - **The service.** While set-up is open, the device advertises the set-up service's UUID (below), and its display name if there is room.
 - **The discriminator.** 4 hexadecimal digits, drawn each time set-up opens. The device shows it beside the code, the QR code carries it, and the device's `hello` gives it. When several devices are in set-up, the app connects to each one, and keeps the one whose discriminator matches.
+- **A typed code** carries no discriminator. With one device in set-up, the app connects to it. With several, it also asks for the discriminator that the device shows beside the code, as Matter's manual code carries part of its own. It never tries the code on a device it has not matched: each failed attempt changes that device's code.
 
 ## The code
 
@@ -184,6 +186,32 @@ An error is a message of type `error`, with `reply_to` when it answers a message
 | `bound` | `register` on a device already bound |
 | `server` | `server` is not an address the device accepts |
 | `identity` | The device could not sign |
+
+## How the app runs it
+
+The steps that a person lives are [ADR-0013's](../../docs/decisions/0013-setting-devices-up.md): "Add device" in a home, the code, a network, the home's settings, the device's name, and "Ready" once the device has connected to the cloud.
+
+- **The requests, in order:** `info`; `networks` and `join`, unless the device is on a network already; `configure`, with the home's languages and time zone; `register`, with the cloud's challenge; and `finish`, once the cloud has answered the registration.
+- **The network is skipped** when `info` shows the device `connected` to a network that reaches the Internet, with `internet` `true`. While `internet` is `null`, the app asks for `info` again. Otherwise it offers the networks.
+- **The name** in `info` is the one that the device gives itself. The app sends it with the registration, and shows it, pre-filled, while the device connects ([the app API](../app/README.md#naming-a-device)).
+- **A device already bound,** `bound` in `info`, has opened set-up because someone asked on it, to give it another network. The app asks the cloud for no challenge, and sends neither `configure` nor `register`: it offers the networks, then sends `finish`. The device refuses `register` with `bound`, and serves the rest.
+  - **Who is at the other end:** anyone who reads the code on the device's screen. The session lets them do only what standing at the device lets them do: change its network and its settings, as its screen does. Nothing in it changes the device's home, its key or its server, and the device reaches its server over TLS, so that a network that someone else chose cannot pass for it (SEC-1).
+  - **A new network does not register the device again:** its registration does not depend on its network. Once the device reaches its server over the new one, the app sees it `connected` in its home ([`wifi-change.json`](examples/wifi-change.json)).
+  - **A device bound to another home** shows `bound` too. The app tells it apart by `info`'s `id`, which none of the person's homes holds: that home removes the device, or it is reset (PROV-4).
+- **What the person meets,** each told apart:
+
+  | The person meets | The app sees |
+  |---|---|
+  | A wrong Wi-Fi password | `wrong_password`, in answer to `join` |
+  | A device in another home | `bound` in `info`, for a device in none of the person's homes; or the cloud's `device_taken`, in answer to the registration |
+  | An expired code | No device in set-up gives the code's discriminator in its `hello`; or `code`, once the device has drawn another code |
+  | A busy device | `busy` |
+  | An interruption | The session ends, before `finished` |
+
+- **After an interruption,** the app first looks for the device in the home, by the `id` that `info` gave, if it kept it. Otherwise the person opens set-up on the device again, if it has closed, and the app starts a new session with the code shown then. `info` and the home's devices say where things stood:
+  - **joined, not registered:** the device is on its network, so the network is skipped, and its registration is a new one;
+  - **registered, without `finish`:** the device may have reached its server since. It is then bound and in the home, and the app goes on to its name. Otherwise it is not bound yet, and its registration again gets `200`, with the device that the cloud holds. A `bound` error to `register` means that it was bound meanwhile;
+  - **registered, its name not confirmed:** the device has, in the home, the name that its registration brought, which its page lets the owner and admins change.
 
 ## The registration
 

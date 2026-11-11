@@ -2,17 +2,19 @@
 
 How the owner's app talks to `ai-cloud`: signing in, the account and its sessions, homes and the people in them, and a home's devices, which set-up registers.
 
-Version **1.4**:
+Version **1.5**:
 - It builds on:
   - [ADR-0008](../../docs/decisions/0008-sign-in.md): the cloud's own accounts, reached with Google or Apple, and sessions of its own tokens, which [ADR-0011](../../docs/decisions/0011-refreshing-again.md) lets an app refresh again after a lost answer;
   - [ADR-0005](../../docs/decisions/0005-homes.md) and [ADR-0009](../../docs/decisions/0009-people-in-a-home.md): homes, the people who are their members, what each may do, and how they join;
   - [ADR-0012](../../docs/decisions/0012-registering-devices.md): a device registered into a home at set-up, with the cloud's challenge, which the device signs and the app relays;
+  - [ADR-0013](../../docs/decisions/0013-setting-devices-up.md): the steps that set a device up, which name it in its home;
   - [ADR-0003](../../docs/decisions/0003-compatibility.md) and [ADR-0004](../../docs/decisions/0004-conventions.md): compatibility and conventions;
   - [ADR-0010](../../docs/decisions/0010-patterns.md): patterns that every engine reads alike.
 - It meets the [requirements](../cloud/requirements.md) that apply to the app and the cloud, whose identifiers (SEC-6, PRIV-4…) it cites.
 - [`schema.json`](schema.json) defines every request and response body, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
+- **1.5** names a home's devices: the app sends a device's own name with its registration, and the owner or an admin renames it, with `If-Match` ([ADR-0013](../../docs/decisions/0013-setting-devices-up.md)). It also says how far an `Idempotency-Key` is unique. An app of 1.4 sends no name and reads no new field, so nothing breaks.
 - **1.4** adds a home's devices: a challenge to register one at set-up, the registration that the app relays, reading them, and removing one ([ADR-0012](../../docs/decisions/0012-registering-devices.md)). An app of 1.3 calls none of it, so nothing breaks.
 - **1.3** lets a refresh token refresh again just after its first use, while the token that replaced it is unused, so that an answer lost on the way does not end the session ([ADR-0011](../../docs/decisions/0011-refreshing-again.md)). An app of 1.2 never presents a token again, so nothing breaks.
 - **1.2** writes the email's and the name's patterns so that every engine reads them alike ([ADR-0010](../../docs/decisions/0010-patterns.md)). The email's now refuses control characters too. No app exists yet, and the cloud keeps only the emails that providers have verified, so nothing breaks.
@@ -153,8 +155,9 @@ The cloud ends the session, and answers `200` whatever the token was ([RFC 7009]
 - **A missing, expired or revoked token** gets `401`, with `WWW-Authenticate: Bearer error="invalid_token"` (RFC 6750).
 - **The cloud confines every request** to the account the token names, and to that account's homes (SEC-6).
 - **`Idempotency-Key`** ([ADR-0004](../../docs/decisions/0004-conventions.md)) goes on the requests this specification names, so that a retry does not create a thing twice. Its value is a UUID that the app makes, as a quoted string: `Idempotency-Key: "01a1a06c-1400-75e6-a77f-f2149dbe59d5"`.
-  - **A retry** with the same key and body gets the first answer, for `idempotency_retention`. Each account's keys are its own.
-  - **No key** gets `400`, **a key used with another body** gets `422`, and **a retry while the first request still runs** gets `409`, which the app tries again ([the IETF's draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/), version 08). All three are `about:blank`.
+  - **A retry** is the same request with the same key: the same method, path and body. It gets the first answer, for `idempotency_retention`.
+  - **A key's uniqueness is its kind of request's,** within its account, as [the IETF's draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/), version 08, leaves it to the server (§2.2). Within a kind, such as creating a home or registering a device, a key that comes with another path or body gets `422`. On another kind of request, the same key is no retry: the cloud may answer `422`, or take it as a new request. So the app makes a new key for each new request.
+  - **No key** gets `400`, and **a retry while the first request still runs** gets `409`, which the app tries again (§2.7). These and `422` are `about:blank`.
 
 ## The account
 
@@ -225,7 +228,7 @@ A home owns devices, and people are its members ([ADR-0005](../../docs/decisions
 |---|---|---|---|
 | See the home, who is in it, and its devices | ✓ | ✓ | ✓ |
 | Change the home's name, time zone and languages | ✓ | ✓ | |
-| Add and remove devices | ✓ | ✓ | |
+| Add, rename and remove devices | ✓ | ✓ | |
 | Invite people, and add profiles | ✓ | ✓ | |
 | Rename or remove members and profiles | ✓ | ✓ | |
 | Rename or remove an admin, and change a person's role | ✓ | | |
@@ -355,6 +358,8 @@ Deleting is for good, so the owner signs in again first, as to delete the accoun
 
 A home owns its devices ([ADR-0005](../../docs/decisions/0005-homes.md)). Set-up registers one into a home: the cloud gives the app a challenge, the device signs its registration with it, and the app relays the registration ([ADR-0012](../../docs/decisions/0012-registering-devices.md)).
 
+Each device has a name in its home, which people see. It starts as the name the device gives itself at set-up, and the owner or an admin changes it ([ADR-0013](../../docs/decisions/0013-setting-devices-up.md)). A device belongs to its home and to nothing finer: there are no rooms.
+
 ```mermaid
 sequenceDiagram
     participant D as Device
@@ -368,6 +373,7 @@ sequenceDiagram
     A->>C: POST /app/v1/homes/{home_id}/devices: the registration
     C->>A: the device, in the home
     A->>D: finish
+    A->>C: PATCH /app/v1/homes/{home_id}/devices/{device_id}: the name, if the person changed it
     D->>C: POST /device/token, with an assertion (the cloud link)
     C->>D: an access token: the device is bound
     A->>C: GET /app/v1/homes/{home_id}/devices/{device_id}, until it is connected
@@ -389,15 +395,17 @@ sequenceDiagram
 **The registration:** the app sends the device `register`, with `challenge` and `server`. The device signs its registration ([set-up](../setup/README.md#the-registration)), and the app relays it: `POST /app/v1/homes/{home_id}/devices`, for the owner and admins, with an `Idempotency-Key`:
 
 ```json
-{"registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIs..."}
+{"registration": "eyJhbGciOiJFUzI1NiIsImp3ayI6eyJjcnYiOiJQLTI1NiIs...", "name": "Robot"}
 ```
 
 The cloud answers `201` with the device, now in the home:
 
 ```json
-{"id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5", "connected": false, "create_time": "2026-11-05T09:00:03Z"}
+{"id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5", "name": "Robot", "connected": false,
+ "create_time": "2026-11-05T09:00:03Z", "etag": "W/\"1\""}
 ```
 
+- **`name`** is the name the device gives itself in set-up's `info`, which the device keeps in the home ([Naming a device](#naming-a-device)). Set-up lets that name hold control characters, which this API refuses: the app then sends its own name for the device's kind.
 - **The cloud checks the registration** as set-up says ([The registration](../setup/README.md#the-registration)):
   - its signature, with the key it carries, a public P-256 key: a `jwk` with a private part, `d`, fails;
   - its `aud`, which is the `server` that the challenge gave;
@@ -407,7 +415,7 @@ The cloud answers `201` with the device, now in the home:
 - **A challenge works once:** the first registration that presents it uses it, whether or not the cloud then registers the device. A retry with the same `Idempotency-Key` gets the first answer.
 - **A registration that fails** gets `400` `registration_invalid`. The cloud does not say which check failed; `detail` may, for logs. The app gets a new challenge, has the device sign again in the same session, and tries once more.
 - **What binds the device to the home** is the cloud's record of its identifier and its key, with the key's thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)), which the device's assertions name as `kid` ([the cloud link](../cloud/README.md#tokens-from-the-server)). The device belongs to the home, and stays when the person who added it leaves.
-- **The same device, already in this home** with this identifier and this key, gets `200` with the device. One that lost its state registers again, and so learns its server again.
+- **The same device, already in this home** with this identifier and this key, gets `200` with the device. One that lost its state registers again, and so learns its server again. It keeps the name it has in the home, and takes the registration's only if it has none.
 - **Any other key or identifier that the cloud already holds** gets `409` `device_taken`: the device is in another home, or its key or its identifier is another device's. That home's owner or an admin removes the device, or the device is reset: a reset gives it a new key and a new identifier ([ai-robot ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md)).
 - **A new device, in a home with `devices_per_home` devices,** gets `409` `device_limit_reached`.
 
@@ -415,20 +423,30 @@ The cloud answers `201` with the device, now in the home:
 - **The app reads the device until `connected` is true.** It waits at least the cloud link's `reconnect_max`, the longest that a device waits between two requests for a token: one that asked before the cloud held its key may wait that long before it asks again.
 - **A device that never connects** stays in the home, not connected, until it is removed.
 
+### Naming a device
+
+**At set-up,** the device has the name that its registration brought. The app shows it, pre-filled, while the device connects: a person who keeps it sends nothing, so that one tap accepts it.
+
+**Renaming:** `PATCH /app/v1/homes/{home_id}/devices/{device_id}`, for the owner and admins, with `{"name": "Bi"}`, answers with the device. `If-Match` works as for the account.
+- **`name`** is 1 to 100 characters, without control characters, as a home's. Two devices of a home may share one, as two homes or two people may.
+- **A device registered without a name,** by an app of 1.4, has none until someone gives it one. The app shows its own name for the device's kind meanwhile, so that no list shows an identifier.
+
 ### Reading a home's devices
 
 - **Listing:** `GET /app/v1/homes/{home_id}/devices`, for anyone in the home, in pages, as sessions are: `{"devices": […], "next_page_token": ""}`.
 - **Reading one:** `GET /app/v1/homes/{home_id}/devices/{device_id}`:
 
   ```json
-  {"id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5", "kind": "robot", "model": "concept-v0", "software": "0.4.0",
-   "connected": true, "create_time": "2026-11-05T09:00:03Z"}
+  {"id": "4a4ce4bd-2853-43d8-98dc-3dc06daec6e5", "name": "Bi", "kind": "robot", "model": "concept-v0",
+   "software": "0.4.0", "connected": true, "create_time": "2026-11-05T09:00:03Z", "etag": "W/\"2\""}
   ```
 
 - **`id`** is the identifier that the device made itself ([ADR-0004](../../docs/decisions/0004-conventions.md)).
+- **`name`** is the device's name in the home, which everyone in it sees.
 - **`kind`, `model` and `software`** are those of the device's latest `hello` on [the cloud link](../cloud/README.md#hello), and are absent until its first. A kind the app does not know, it shows as a device.
 - **`connected`** says whether the device's control channel is open now.
 - **`create_time`** is when the device was registered into the home.
+- **`etag`** changes when the name does. The device's connections and its `hello` do not change it, so that a rename does not race the device.
 
 ### Removing a device
 
