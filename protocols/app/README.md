@@ -2,26 +2,28 @@
 
 How the owner's app talks to `ai-cloud`: signing in, the account and its sessions, homes and the people in them, and a home's devices, which set-up registers.
 
-Version **1.5**:
+Version **1.6**:
 - It builds on:
   - [ADR-0008](../../docs/decisions/0008-sign-in.md): the cloud's own accounts, reached with Google or Apple, and sessions of its own tokens, which [ADR-0011](../../docs/decisions/0011-refreshing-again.md) lets an app refresh again after a lost answer;
   - [ADR-0005](../../docs/decisions/0005-homes.md) and [ADR-0009](../../docs/decisions/0009-people-in-a-home.md): homes, the people who are their members, what each may do, and how they join;
   - [ADR-0012](../../docs/decisions/0012-registering-devices.md): a device registered into a home at set-up, with the cloud's challenge, which the device signs and the app relays;
   - [ADR-0013](../../docs/decisions/0013-setting-devices-up.md): the steps that set a device up, which name it in its home;
   - [ADR-0003](../../docs/decisions/0003-compatibility.md) and [ADR-0004](../../docs/decisions/0004-conventions.md): compatibility and conventions;
-  - [ADR-0010](../../docs/decisions/0010-patterns.md): patterns that every engine reads alike.
+  - [ADR-0010](../../docs/decisions/0010-patterns.md): patterns that every engine reads alike;
+  - [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md): JSON that every side can hold.
 - It meets the [requirements](../cloud/requirements.md) that apply to the app and the cloud, whose identifiers (SEC-6, PRIV-4…) it cites.
 - [`schema.json`](schema.json) defines every request and response body, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
-- **1.5** names a home's devices: the app sends a device's own name with its registration, and the owner or an admin renames it, with `If-Match` ([ADR-0013](../../docs/decisions/0013-setting-devices-up.md)). It also says how far an `Idempotency-Key` is unique. An app of 1.4 sends no name and reads no new field, so nothing breaks.
+- **1.6** holds every JSON body to [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md): I-JSON, without U+0000, at most 64 levels deep. The cloud answers a body that it cannot hold with `400`, as it answers one that breaks `schema.json`, which the text now says. Names already refused U+0000, so an app of 1.5 that sends no lone surrogate and nothing nested past 64 meets no change.
+- 1.5 names a home's devices: the app sends a device's own name with its registration, and the owner or an admin renames it, with `If-Match` ([ADR-0013](../../docs/decisions/0013-setting-devices-up.md)). It also says how far an `Idempotency-Key` is unique. An app of 1.4 sends no name and reads no new field, so nothing breaks.
 - **1.4** adds a home's devices: a challenge to register one at set-up, the registration that the app relays, reading them, and removing one ([ADR-0012](../../docs/decisions/0012-registering-devices.md)). An app of 1.3 calls none of it, so nothing breaks.
 - **1.3** lets a refresh token refresh again just after its first use, while the token that replaced it is unused, so that an answer lost on the way does not end the session ([ADR-0011](../../docs/decisions/0011-refreshing-again.md)). An app of 1.2 never presents a token again, so nothing breaks.
 - **1.2** writes the email's and the name's patterns so that every engine reads them alike ([ADR-0010](../../docs/decisions/0010-patterns.md)). The email's now refuses control characters too. No app exists yet, and the cloud keeps only the emails that providers have verified, so nothing breaks.
 - **1.1** adds homes: creating and changing them, the people in them and their roles, profiles, invitations, handing a home over, and deleting it. It also says what a refused ID token gets when it links an identity, what a name may hold, and what "other members" means when an account is deleted.
 - **1.0** signs people in, and lets them see and change their account, its identities and its sessions, and delete it.
 
-> **Implemented:** version 1.3 by the cloud, but for Apple and the page at `/join`. The app: all of 1.3 in its client; on its screens, signing in with the development provider, the session, the account, and homes with their people, profiles, invitations and joining. Version 1.4's devices, by neither yet.
+> **Implemented:** version 1.5 by the cloud, but for Apple and the page at `/join`: a home's devices, their registration ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)), whether they are `connected`, their kind, model and software ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)), and their names ([ai-cloud#28](https://github.com/trungnguyen278/ai-cloud/pull/28)). The app: all of 1.3 in its client; on its screens, signing in with the development provider, the session, the account, and homes with their people, profiles, invitations and joining. The devices of 1.4 and 1.5, not yet. Version 1.6, by neither yet.
 
 ## The cloud's address
 
@@ -32,7 +34,7 @@ The app's configuration names the cloud, as `https://`; `http://` only to a deve
 
 Devices may reach the cloud at another address, which the cloud gives with each challenge to register one ([Adding a device](#adding-a-device)).
 
-Bodies are JSON (`application/json`), except at the OAuth endpoints, which take form fields (`application/x-www-form-urlencoded`) as OAuth does. The schema and the examples write those fields as a JSON object.
+Bodies are JSON (`application/json`) that every side can hold ([ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md)), except at the OAuth endpoints, which take form fields (`application/x-www-form-urlencoded`) as OAuth does. The schema and the examples write those fields as a JSON object. A body that the cloud cannot read or hold, or that breaks `schema.json`, gets `400`, `about:blank`.
 
 ## Signing in
 
@@ -519,7 +521,7 @@ How this version meets the [requirements](../cloud/requirements.md#9-security):
   - access tokens expire within `access_lifetime`;
   - refresh tokens rotate, and one presented again ends its session, but for a retry just after its first use, while its replacement is unused. A retry continues the same session, whose replacement then stops working, so that it never has two refresh tokens that work;
   - an invitation's code works once, expires, and is kept only as a hash. Removing or demoting the person who made it revokes it, so that nobody keeps a way back in.
-- **SEC-14, SEC-15:** the cloud validates every body against `schema.json`, and limits rates, the nonces', the invitation codes' and the challenges' above all.
+- **SEC-14, SEC-15:** the cloud validates every body against `schema.json` and [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md), and limits rates, the nonces', the invitation codes' and the challenges' above all.
 - **PRIV-4:** the person deletes the account, and with it everything that is theirs, from the app or the web. A fresh sign-in comes first, so that a phone left unlocked cannot do it. Leaving a home, or being removed from it, deletes what belongs to the person there, and deleting a home deletes all it holds.
 - **PRIV-7:** accounts are for adults. The cloud keeps no birth date and has no child accounts. What the cloud may keep for a profile is settled with the law on personal data (ai-cloud ADR-0006), before the first real users.
 - **People in a home see each other's names, and nothing else.**
