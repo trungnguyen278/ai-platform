@@ -14,7 +14,7 @@ What the project's AI products share: the protocols between them, and the decisi
 | Protocol | Between | Version | Decided in |
 |---|---|---|---|
 | [Cloud link](protocols/cloud/README.md) | A device and ai-cloud | 3.1 | [ADR-0006](docs/decisions/0006-two-channels.md), [ADR-0014](docs/decisions/0014-json-every-side-can-hold.md); ai-robot ADR-0008, ADR-0009, ADR-0010, ADR-0012 |
-| [Set-up](protocols/setup/README.md) | The owner's app, a device and ai-cloud | 2.0 | [ADR-0005](docs/decisions/0005-homes.md), [ADR-0012](docs/decisions/0012-registering-devices.md), [ADR-0013](docs/decisions/0013-setting-devices-up.md); ai-robot ADR-0015 |
+| [Set-up](protocols/setup/README.md) | The owner's app, a device and ai-cloud | 2.1 | [ADR-0005](docs/decisions/0005-homes.md), [ADR-0012](docs/decisions/0012-registering-devices.md), [ADR-0013](docs/decisions/0013-setting-devices-up.md), [ADR-0014](docs/decisions/0014-json-every-side-can-hold.md); ai-robot ADR-0015 |
 | [App API](protocols/app/README.md) | The owner's app and ai-cloud | 1.5 | [ADR-0008](docs/decisions/0008-sign-in.md), [ADR-0004](docs/decisions/0004-conventions.md), [ADR-0005](docs/decisions/0005-homes.md), [ADR-0009](docs/decisions/0009-people-in-a-home.md), [ADR-0010](docs/decisions/0010-patterns.md), [ADR-0011](docs/decisions/0011-refreshing-again.md), [ADR-0012](docs/decisions/0012-registering-devices.md), [ADR-0013](docs/decisions/0013-setting-devices-up.md) |
 
 Each protocol folder holds:

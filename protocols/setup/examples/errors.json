@@ -1,0 +1,68 @@
+{
+  "description": "The errors that end a session before its exchange is done, as each side reads them (in the clear): a second app that finds set-up busy, an app of another major version, and a wrong confirmation. Each is a session of its own, numbered from 1.",
+  "messages": [
+    {
+      "note": "A second app connects while another app's session runs. The device answers its hello with busy once the hello's last fragment has come, to this app only, and ends this connection. The session that runs goes on, and sees none of this."
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "hello",
+        "seq": 1,
+        "protocol": "2.1"
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "error",
+        "seq": 1,
+        "reply_to": 1,
+        "code": "busy",
+        "message": "another set-up session runs"
+      }
+    },
+    {
+      "note": "An app that speaks another major version: the device answers its hello with version, and ends the session."
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "hello",
+        "seq": 1,
+        "protocol": "3.0"
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "error",
+        "seq": 1,
+        "reply_to": 1,
+        "code": "version",
+        "message": "the device speaks set-up 2.1"
+      }
+    },
+    {
+      "note": "The exchange runs as in session.json, with this session's own code and salt, up to the app's confirm, whose confirmP is wrong here: the code was typed wrong, or someone is in between. The device answers code, numbered after its hello and its share, and ends the session. It then shows a new code."
+    },
+    {
+      "from": "app",
+      "message": {
+        "type": "confirm",
+        "seq": 3,
+        "confirm": "srv4HfYRkszBJaeVWOs7gJsnkEtCMqSthwqurM26Bg0"
+      }
+    },
+    {
+      "from": "device",
+      "message": {
+        "type": "error",
+        "seq": 3,
+        "reply_to": 3,
+        "code": "code",
+        "message": "the code is wrong"
+      }
+    }
+  ]
+}

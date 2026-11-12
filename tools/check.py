@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: MIT
 """Check the protocols: every schema is valid JSON Schema, its patterns keep to ADR-0010,
-every example follows its schema, whose patterns are read as ECMA-262 reads them, and holds
-only JSON that every side can hold (ADR-0014), and a new minor version still accepts the
-examples of the version before it. Check the catalogs too: their schema, their examples, and
-the copy of MF2's test suite.
+each keyword of one type has its type declared as Ajv's strictTypes asks, every example
+follows its schema, whose patterns are read as ECMA-262 reads them, and holds only JSON that
+every side can hold (ADR-0014), and a new minor version still accepts the examples of the
+version before it. Check the catalogs too: their schema, their examples, and the copy of
+MF2's test suite.
 
     python tools/check.py
 
@@ -486,17 +487,103 @@ def check_patterns(schemas: dict[str, Any]) -> list[str]:
     return problems
 
 
+# The keywords that apply to one type of value only (JSON Schema 2020-12, Validation §6 and
+# Core §10). Ajv's strict mode asks that a schema using one declare that type, in itself or
+# in a schema for the same value, and never through a $ref ("strictTypes"), so that an app
+# compiles every schema here strictly.
+TYPED_KEYWORDS: dict[str, frozenset[str]] = {
+    "object": frozenset({
+        "properties", "patternProperties", "additionalProperties", "propertyNames",
+        "unevaluatedProperties", "required", "minProperties", "maxProperties",
+        "dependentRequired", "dependentSchemas",
+    }),
+    "array": frozenset({
+        "items", "prefixItems", "contains", "minContains", "maxContains", "unevaluatedItems",
+        "minItems", "maxItems", "uniqueItems",
+    }),
+    "string": frozenset({"minLength", "maxLength", "pattern", "format"}),
+    "number": frozenset({
+        "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+    }),
+}
+SAME_VALUE = frozenset({"allOf", "anyOf", "oneOf", "if", "then", "else", "not", "dependentSchemas"})
+SUBSCHEMA_MAPS = frozenset({"properties", "patternProperties", "dependentSchemas", "$defs"})
+SUBSCHEMA_LISTS = frozenset({"allOf", "anyOf", "oneOf", "prefixItems"})
+SUBSCHEMAS = frozenset({
+    "if", "then", "else", "not", "items", "contains", "additionalProperties",
+    "unevaluatedProperties", "unevaluatedItems", "propertyNames",
+})
+
+
+def untyped(node: Any, declared: frozenset[str] = frozenset(), where: str = "") -> Iterator[str]:
+    """The places in a schema that use a keyword of a type which neither they nor a schema for
+    the same value above them declare."""
+    if not isinstance(node, dict):
+        return
+    own = node.get("type", ())
+    types = declared | frozenset([own] if isinstance(own, str) else own)
+    if "integer" in types:
+        types |= {"number"}
+    for kind, keywords in TYPED_KEYWORDS.items():
+        if kind not in types and (used := sorted(keywords & node.keys())):
+            yield f"{where or '/'}: {', '.join(used)}, without \"type\": \"{kind}\""
+    for key, value in node.items():
+        inherited = types if key in SAME_VALUE else frozenset()
+        if key == "propertyNames":  # a property's name is a string, as Ajv knows
+            inherited = frozenset({"string"})
+        if key in SUBSCHEMA_MAPS and isinstance(value, dict):
+            for name, subschema in value.items():
+                yield from untyped(subschema, inherited, f"{where}/{key}/{name}")
+        elif key in SUBSCHEMA_LISTS and isinstance(value, list):
+            for index, subschema in enumerate(value):
+                yield from untyped(subschema, inherited, f"{where}/{key}/{index}")
+        elif key in SUBSCHEMAS:
+            yield from untyped(value, inherited, f"{where}/{key}")
+
+
+# Schemas that the check of declared types must accept (True) and refuse (False).
+PLANTED_SCHEMAS: tuple[tuple[dict[str, Any], bool], ...] = (
+    ({"type": "object", "properties": {"a": {"type": "string", "pattern": "^a$"}}}, True),
+    ({"type": "object", "oneOf": [{"required": ["a"]}, {"not": {"required": ["b"]}}]}, True),
+    ({"type": "object", "properties": {"required": {"type": "array"}}}, True),
+    ({"type": "integer", "minimum": 1}, True),
+    ({"type": ["array", "null"], "items": {"type": "string"}}, True),
+    ({"type": "object", "propertyNames": {"pattern": "^a$"}}, True),
+    ({"required": ["a"]}, False),
+    ({"type": "string", "required": ["a"]}, False),
+    ({"type": "object", "properties": {"a": {"pattern": "^a$"}}}, False),
+    ({"type": "object", "oneOf": [{"properties": {"a": {"pattern": "^a$"}}}]}, False),
+    ({"type": "object", "additionalProperties": {"minimum": 1}}, False),
+    ({"type": "object", "properties": {"a": {"required": ["b"]}}}, False),  # not its own type
+    ({"type": "array", "items": {"maxLength": 2}}, False),
+    ({"$defs": {"a": {"type": "object"}}, "allOf": [{"$ref": "#/$defs/a"}], "required": []}, False),
+    ({"type": "object", "then": {"properties": {"a": {"minItems": 1}}}}, False),
+)
+
+
+def check_types(schemas: dict[str, Any]) -> list[str]:
+    """Problems with the declared types of `schemas`, by file; and with the check itself, which
+    must accept and refuse the planted schemas."""
+    problems = [
+        f"tools/check.py: {'refuses' if valid else 'accepts'} the planted schema {schema}"
+        for schema, valid in PLANTED_SCHEMAS
+        if valid != (next(untyped(schema), None) is None)
+    ]
+    for file, schema in schemas.items():
+        problems += [f"{file}#{place} (Ajv's strictTypes)" for place in untyped(schema)]
+    return problems
+
+
 def main() -> int:
     problems: list[str] = check_catalogs()
     problems += check_reading()
     problems += check_holding()
-    schemas = [*sorted(PROTOCOLS.glob("*/schema.json")), CATALOGS / "schema.json"]
-    problems += check_patterns(
-        {
-            path.relative_to(ROOT).as_posix(): json.loads(path.read_text(encoding="utf-8"))
-            for path in schemas
-        }
-    )
+    schemas = {
+        path.relative_to(ROOT).as_posix(): json.loads(path.read_text(encoding="utf-8"))
+        for path in [*sorted(PROTOCOLS.glob("*/schema.json")), CATALOGS / "schema.json"]
+    }
+    problems += check_patterns(schemas)
+    problems += check_types(schemas)
     for folder in sorted(path for path in PROTOCOLS.iterdir() if path.is_dir()):
         name = folder.name
         schema = json.loads((folder / "schema.json").read_text(encoding="utf-8"))
@@ -511,7 +598,9 @@ def main() -> int:
             problems.append(f"{name}: no examples")
         for path in examples:
             text = path.read_text(encoding="utf-8")
-            problems += [f"{name}/examples/{path.name}: {problem} (ADR-0014)" for problem in held(text)]
+            problems += [
+                f"{name}/examples/{path.name}: {problem} (ADR-0014)" for problem in held(text)
+            ]
             data = json.loads(text)
             problems += check_examples(f"{name}/examples/{path.name}", data, schema)
         previous = previous_examples(name, major, minor)
