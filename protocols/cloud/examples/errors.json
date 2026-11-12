@@ -1,0 +1,25 @@
+{
+  "description": "What a side does with what it receives and cannot take, from version 3.1. A message that it can answer, a JSON object with its type and its number, gets an error that names that number, and the session goes on. A frame that it cannot answer ends the session (the README's Validation).",
+  "messages": [
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.1",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.5.0"},
+      "time": "2026-11-12T08:00:00.100Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi", "en"], "allowed_classes": ["informational"],
+      "conversations": false, "media": ["livekit"], "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.1", "session": "01a1a0c4-5b10-7c3e-8a41-2f6d90b7e215",
+      "resumed": false, "time": "2026-11-12T08:00:00.160Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }},
+    {"note": "The device's first message, a device.changed numbered 1, gives its time zone as a number. The cloud reads its type and its number, so it answers it, and the session goes on."},
+    {"from": "cloud", "message": {
+      "type": "error", "seq": 1, "reply_to": 1, "code": "invalid_message",
+      "message": "time_zone is not a string"
+    }},
+    {"note": "The device's next message, a device.changed numbered 2, holds U+0000 in its time zone: JSON that no side holds (ADR-0014). The cloud refuses it as a frame that it cannot answer, however far its reader got, as it would a ping nested 70 deep or a message without its number."},
+    {"from": "cloud", "message": {"type": "bye", "reason": "invalid_message", "message": "a frame could not be answered"}},
+    {"note": "The device connects again after the backoff, for a new session. A device of version 3.0 takes the reason as error, and does the same."}
+  ]
+}

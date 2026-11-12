@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Cloud link, version 3.0",
+  "title": "Cloud link, version 3.1",
   "description": "Every message of protocols/cloud/README.md. On the control channel, each is one text frame: validate a device's against #/$defs/from_device, the cloud's against #/$defs/from_cloud. In a conversation's room, each is one text stream: validate the agent's against #/$defs/from_agent, the device's against #/$defs/from_device_in_room. Unknown message types and fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {"type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"},
@@ -46,6 +46,7 @@
     "allowed_classes": {"type": "array", "items": {"$ref": "#/$defs/code"}, "maxItems": 16, "uniqueItems": true, "description": "informational, privacy, physical, system"},
 
     "device_hello": {
+      "type": "object",
       "required": ["protocol", "device", "time", "time_zone", "languages", "allowed_classes", "conversations", "media", "events"],
       "properties": {
         "protocol": {"$ref": "#/$defs/version"},
@@ -74,6 +75,7 @@
       }
     },
     "cloud_hello": {
+      "type": "object",
       "required": ["protocol", "session", "resumed", "time", "ping_interval", "conversations", "events"],
       "properties": {
         "protocol": {"$ref": "#/$defs/version"},
@@ -89,17 +91,21 @@
       "then": {"required": ["received"]}
     },
     "received": {
+      "type": "object",
       "required": ["received"],
       "properties": {"received": {"$ref": "#/$defs/count"}}
     },
     "bye": {
+      "type": "object",
       "required": ["reason"],
       "properties": {"reason": {"$ref": "#/$defs/code"}, "message": {"$ref": "#/$defs/short_text"}}
     },
     "reconnect": {
+      "type": "object",
       "properties": {"message": {"$ref": "#/$defs/short_text"}}
     },
     "device_changed": {
+      "type": "object",
       "properties": {
         "languages": {"$ref": "#/$defs/languages"},
         "time_zone": {"$ref": "#/$defs/time_zone"},
@@ -108,6 +114,7 @@
       "anyOf": [{"required": ["languages"]}, {"required": ["time_zone"]}, {"required": ["allowed_classes"]}]
     },
     "mcp": {
+      "type": "object",
       "required": ["payload"],
       "properties": {
         "payload": {
@@ -119,6 +126,7 @@
       }
     },
     "event": {
+      "type": "object",
       "required": ["name", "time", "data"],
       "properties": {
         "name": {"$ref": "#/$defs/name"},
@@ -127,6 +135,7 @@
       }
     },
     "conversation_request": {
+      "type": "object",
       "required": ["conversation", "trigger", "context"],
       "properties": {
         "conversation": {"$ref": "#/$defs/uuid"},
@@ -141,6 +150,7 @@
       }
     },
     "conversation_start": {
+      "type": "object",
       "required": ["conversation", "listen", "media"],
       "properties": {
         "conversation": {"$ref": "#/$defs/uuid"},
@@ -163,18 +173,22 @@
       }
     },
     "conversation_end": {
+      "type": "object",
       "required": ["conversation", "reason"],
       "properties": {"conversation": {"$ref": "#/$defs/uuid"}, "reason": {"$ref": "#/$defs/code"}}
     },
     "turn": {
+      "type": "object",
       "required": ["turn"],
       "properties": {"turn": {"$ref": "#/$defs/uuid"}}
     },
     "turn_cancel": {
+      "type": "object",
       "required": ["turn", "reason"],
       "properties": {"turn": {"$ref": "#/$defs/uuid"}, "reason": {"$ref": "#/$defs/code"}}
     },
     "response_start": {
+      "type": "object",
       "required": ["response", "turn", "language"],
       "properties": {
         "response": {"$ref": "#/$defs/uuid"},
@@ -183,14 +197,17 @@
       }
     },
     "response_text": {
+      "type": "object",
       "required": ["response", "delta"],
       "properties": {"response": {"$ref": "#/$defs/uuid"}, "delta": {"type": "string", "maxLength": 4096}}
     },
     "response": {
+      "type": "object",
       "required": ["response"],
       "properties": {"response": {"$ref": "#/$defs/uuid"}}
     },
     "error": {
+      "type": "object",
       "required": ["reply_to", "code", "message"],
       "properties": {
         "code": {"$ref": "#/$defs/code"},
@@ -256,25 +273,25 @@
       ]
     },
 
-    "is_hello": {"required": ["type"], "properties": {"type": {"const": "hello"}}},
-    "is_ping": {"required": ["type"], "properties": {"type": {"const": "ping"}}},
-    "is_pong": {"required": ["type"], "properties": {"type": {"const": "pong"}}},
-    "is_reconnect": {"required": ["type"], "properties": {"type": {"const": "reconnect"}}},
-    "is_bye": {"required": ["type"], "properties": {"type": {"const": "bye"}}},
-    "is_device_changed": {"required": ["type"], "properties": {"type": {"const": "device.changed"}}},
-    "is_mcp": {"required": ["type"], "properties": {"type": {"const": "mcp"}}},
-    "is_event": {"required": ["type"], "properties": {"type": {"const": "event"}}},
-    "is_conversation_request": {"required": ["type"], "properties": {"type": {"const": "conversation.request"}}},
-    "is_conversation_start": {"required": ["type"], "properties": {"type": {"const": "conversation.start"}}},
-    "is_conversation_end": {"required": ["type"], "properties": {"type": {"const": "conversation.end"}}},
-    "is_turn_start": {"required": ["type"], "properties": {"type": {"const": "turn.start"}}},
-    "is_turn_speech_end": {"required": ["type"], "properties": {"type": {"const": "turn.speech_end"}}},
-    "is_turn_cancel": {"required": ["type"], "properties": {"type": {"const": "turn.cancel"}}},
-    "is_response_start": {"required": ["type"], "properties": {"type": {"const": "response.start"}}},
-    "is_response_text": {"required": ["type"], "properties": {"type": {"const": "response.text"}}},
-    "is_response_end": {"required": ["type"], "properties": {"type": {"const": "response.end"}}},
-    "is_response_stop": {"required": ["type"], "properties": {"type": {"const": "response.stop"}}},
-    "is_response_interrupted": {"required": ["type"], "properties": {"type": {"const": "response.interrupted"}}},
-    "is_error": {"required": ["type"], "properties": {"type": {"const": "error"}}}
+    "is_hello": {"type": "object", "required": ["type"], "properties": {"type": {"const": "hello"}}},
+    "is_ping": {"type": "object", "required": ["type"], "properties": {"type": {"const": "ping"}}},
+    "is_pong": {"type": "object", "required": ["type"], "properties": {"type": {"const": "pong"}}},
+    "is_reconnect": {"type": "object", "required": ["type"], "properties": {"type": {"const": "reconnect"}}},
+    "is_bye": {"type": "object", "required": ["type"], "properties": {"type": {"const": "bye"}}},
+    "is_device_changed": {"type": "object", "required": ["type"], "properties": {"type": {"const": "device.changed"}}},
+    "is_mcp": {"type": "object", "required": ["type"], "properties": {"type": {"const": "mcp"}}},
+    "is_event": {"type": "object", "required": ["type"], "properties": {"type": {"const": "event"}}},
+    "is_conversation_request": {"type": "object", "required": ["type"], "properties": {"type": {"const": "conversation.request"}}},
+    "is_conversation_start": {"type": "object", "required": ["type"], "properties": {"type": {"const": "conversation.start"}}},
+    "is_conversation_end": {"type": "object", "required": ["type"], "properties": {"type": {"const": "conversation.end"}}},
+    "is_turn_start": {"type": "object", "required": ["type"], "properties": {"type": {"const": "turn.start"}}},
+    "is_turn_speech_end": {"type": "object", "required": ["type"], "properties": {"type": {"const": "turn.speech_end"}}},
+    "is_turn_cancel": {"type": "object", "required": ["type"], "properties": {"type": {"const": "turn.cancel"}}},
+    "is_response_start": {"type": "object", "required": ["type"], "properties": {"type": {"const": "response.start"}}},
+    "is_response_text": {"type": "object", "required": ["type"], "properties": {"type": {"const": "response.text"}}},
+    "is_response_end": {"type": "object", "required": ["type"], "properties": {"type": {"const": "response.end"}}},
+    "is_response_stop": {"type": "object", "required": ["type"], "properties": {"type": {"const": "response.stop"}}},
+    "is_response_interrupted": {"type": "object", "required": ["type"], "properties": {"type": {"const": "response.interrupted"}}},
+    "is_error": {"type": "object", "required": ["type"], "properties": {"type": {"const": "error"}}}
   }
 }

@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
 """Check the protocols: every schema is valid JSON Schema, its patterns keep to ADR-0010,
-every example follows its schema, whose patterns are read as ECMA-262 reads them, and a new
-minor version still accepts the examples of the version before it. Check the catalogs too:
-their schema, their examples, and the copy of MF2's test suite.
+every example follows its schema, whose patterns are read as ECMA-262 reads them, and holds
+only JSON that every side can hold (ADR-0014), and a new minor version still accepts the
+examples of the version before it. Check the catalogs too: their schema, their examples, and
+the copy of MF2's test suite.
 
     python tools/check.py
 
@@ -125,6 +126,79 @@ def check_reading() -> list[str]:
             verb = "refuses" if valid else "accepts"
             problems.append(f"tools/check.py: {verb} {value!r} against {schema}")
     return problems
+
+
+# What every side can hold (ADR-0014): I-JSON (RFC 7493, §2), without U+0000, at most 64 deep.
+MAX_DEPTH = 64
+
+
+def held(text: str) -> list[str]:
+    """Problems with the JSON `text` of an example file, against ADR-0014: a name twice in an
+    object, a lone surrogate, a noncharacter or a U+0000 in a name or a string, or a message
+    whose arrays and objects nest more than MAX_DEPTH deep."""
+    problems: list[str] = []
+
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        names = [name for name, _ in items]
+        problems.extend(f"`{name}` twice in an object" for name in sorted(set(names))
+                        if names.count(name) > 1)
+        return dict(items)
+
+    def characters(string: str) -> None:
+        for character in set(string):
+            code = ord(character)
+            if code == 0:
+                problems.append("U+0000 in a string")
+            elif 0xD800 <= code <= 0xDFFF:  # a pair is one character once read: this one is alone
+                problems.append(f"a lone surrogate, U+{code:04X}")
+            elif 0xFDD0 <= code <= 0xFDEF or code & 0xFFFE == 0xFFFE:
+                problems.append(f"a noncharacter, U+{code:04X}")
+
+    def walk(value: Any, depth: int) -> None:
+        if isinstance(value, str):
+            characters(value)
+        elif isinstance(value, (dict, list)):
+            if depth > MAX_DEPTH:
+                problems.append(f"nests deeper than {MAX_DEPTH}")
+                return
+            for name in value if isinstance(value, dict) else ():
+                characters(name)
+            for item in value.values() if isinstance(value, dict) else value:
+                walk(item, depth + 1)
+
+    data = json.loads(text, object_pairs_hook=pairs)
+    steps = data.get("messages", []) if isinstance(data, dict) else []
+    walk(data, -MAX_DEPTH)  # the file's own text, at any depth
+    for step in steps:
+        if isinstance(step, dict) and "message" in step:
+            walk(step["message"], 1)
+    return sorted(set(problems))
+
+
+# Example files that the check of ADR-0014 must accept (True) and refuse (False). The escapes
+# are made by json.dumps, which writes a lone surrogate and a noncharacter as \u escapes too.
+PLANTED_TEXTS: tuple[tuple[str, bool], ...] = (
+    (json.dumps({"messages": [{"message": {"a": "x"}}]}), True),
+    (json.dumps({"messages": [{"message": {"a": chr(0x1F600)}}]}), True),  # a surrogate pair
+    (json.dumps({"messages": [{"message": {"a": chr(0)}}]}), False),
+    (json.dumps({"messages": [{"message": {chr(0): 1}}]}), False),
+    (json.dumps({"messages": [{"message": {"a": chr(0xDEAD)}}]}), False),
+    (json.dumps({"messages": [{"message": {"a": chr(0xFDD0)}}]}), False),
+    (json.dumps({"messages": [{"message": {"a": chr(0x10FFFF)}}]}), False),
+    ('{"messages": [{"message": {"a": 1, "a": 1}}]}', False),
+    # ADR-0014's figure, written out so that a change to MAX_DEPTH alone fails the check.
+    ('{"messages": [{"message": ' + "[" * 64 + "]" * 64 + "}]}", True),
+    ('{"messages": [{"message": ' + "[" * 65 + "]" * 65 + "}]}", False),
+)
+
+
+def check_holding() -> list[str]:
+    """Problems with the check of ADR-0014: it must accept and refuse the planted texts."""
+    return [
+        f"tools/check.py: {'refuses' if valid else 'accepts'} {text[:80]!r}"
+        for text, valid in PLANTED_TEXTS
+        if bool(held(text)) == valid
+    ]
 
 
 def git(*args: str) -> str:
@@ -415,6 +489,7 @@ def check_patterns(schemas: dict[str, Any]) -> list[str]:
 def main() -> int:
     problems: list[str] = check_catalogs()
     problems += check_reading()
+    problems += check_holding()
     schemas = [*sorted(PROTOCOLS.glob("*/schema.json")), CATALOGS / "schema.json"]
     problems += check_patterns(
         {
@@ -435,7 +510,9 @@ def main() -> int:
         if not examples:
             problems.append(f"{name}: no examples")
         for path in examples:
-            data = json.loads(path.read_text(encoding="utf-8"))
+            text = path.read_text(encoding="utf-8")
+            problems += [f"{name}/examples/{path.name}: {problem} (ADR-0014)" for problem in held(text)]
+            data = json.loads(text)
             problems += check_examples(f"{name}/examples/{path.name}", data, schema)
         previous = previous_examples(name, major, minor)
         if previous:

@@ -21,6 +21,7 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0011](0011-refreshing-again.md) | Refreshing again, after an answer was lost | Accepted | 2026-11-04 |
 | [0012](0012-registering-devices.md) | Registering a device into a home: the cloud's challenge, signed by the device, relayed by the app | Accepted; its open question on names settled by 0013 | 2026-11-05 |
 | [0013](0013-setting-devices-up.md) | Setting a device up: the steps, its name in its home, and a new network | Accepted | 2026-11-12 |
+| [0014](0014-json-every-side-can-hold.md) | JSON that every side can hold: I-JSON, no NUL, at most 64 deep | Accepted | 2026-11-12 |
 
 ## Earlier decisions, in ai-robot
 

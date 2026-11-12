@@ -39,6 +39,9 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **Sources:** what the protocol relies on (an RFC, a Bluetooth specification) is cited, with the section.
 - **Conventions** ([ADR-0004](../../../docs/decisions/0004-conventions.md)): UUIDs, RFC 3339 instants, durations in seconds, IANA time zones for civil times, snake_case fields, Problem Details for HTTPS errors.
 - **Compatibility** ([ADR-0003](../../../docs/decisions/0003-compatibility.md)): a breaking change is a new major, with a plan for both majors to run side by side; the update path does not change.
+- **JSON every side can hold** ([ADR-0014](../../../docs/decisions/0014-json-every-side-can-hold.md)): a free value, such as an event's `data`, is still I-JSON, without U+0000, and at most 64 deep. An example never needs more than a dozen levels.
+- **`type: object` on every object definition:** each `$defs` entry that uses `properties` or `required` says `"type": "object"` itself, even when it is reached only through a definition that does. Ajv's strictTypes does not follow `$ref` to find a type, and ai-app compiles the schemas with it. Adding the type changes no outcome, since every message is an object.
+- **A frame that cannot be answered:** an `error` needs a number to answer. For every frame without one (unreadable, unnumbered, held only partly by a parser that gave up), the text says how the session ends, and the rule depends on the frame, never on how far a reader got. A size limit is met by the WebSocket library, which closes with 1009 before the application sees anything.
 
 ### The check
 
