@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "The app API, ai-app and ai-cloud, version 1.5",
+  "title": "The app API, ai-app and ai-cloud, version 1.6",
   "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {
