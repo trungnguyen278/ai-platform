@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Set-up, the app and a device over Bluetooth LE, version 2.0",
+  "title": "Set-up, the app and a device over Bluetooth LE, version 2.1",
   "description": "Every message of the set-up protocol, as its JSON (README.md). from_app and from_device are the messages of each side, in the clear or, after the exchange, once decrypted. Unknown message types and fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "seq": {"type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "A message's number in its session"},
@@ -19,6 +19,7 @@
     "ssid_hex": {"description": "A network's name whose bytes are not UTF-8, in hexadecimal", "type": "string", "pattern": "^([0-9a-f]{2}){1,32}$"},
     "named": {
       "description": "Exactly one of ssid and ssid_hex",
+      "type": "object",
       "oneOf": [
         {"required": ["ssid"], "not": {"required": ["ssid_hex"]}},
         {"required": ["ssid_hex"], "not": {"required": ["ssid"]}}
@@ -61,10 +62,11 @@
         "reply_to": {"$ref": "#/$defs/seq"}
       }
     },
-    "answer": {"required": ["reply_to"]},
+    "answer": {"type": "object", "required": ["reply_to"]},
 
-    "app_hello": {"required": ["protocol"], "properties": {"protocol": {"$ref": "#/$defs/version"}}},
+    "app_hello": {"type": "object", "required": ["protocol"], "properties": {"protocol": {"$ref": "#/$defs/version"}}},
     "device_hello": {
+      "type": "object",
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["protocol", "discriminator", "salt"],
       "properties": {
@@ -73,14 +75,16 @@
         "salt": {"$ref": "#/$defs/salt"}
       }
     },
-    "app_share": {"required": ["share"], "properties": {"share": {"$ref": "#/$defs/point"}}},
+    "app_share": {"type": "object", "required": ["share"], "properties": {"share": {"$ref": "#/$defs/point"}}},
     "device_share": {
+      "type": "object",
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["share", "confirm"],
       "properties": {"share": {"$ref": "#/$defs/point"}, "confirm": {"$ref": "#/$defs/tag"}}
     },
-    "confirm": {"required": ["confirm"], "properties": {"confirm": {"$ref": "#/$defs/tag"}}},
+    "confirm": {"type": "object", "required": ["confirm"], "properties": {"confirm": {"$ref": "#/$defs/tag"}}},
     "join": {
+      "type": "object",
       "allOf": [{"$ref": "#/$defs/named"}],
       "properties": {
         "ssid": {"$ref": "#/$defs/ssid"},
@@ -93,6 +97,7 @@
       "then": {"required": ["security"]}
     },
     "configure": {
+      "type": "object",
       "properties": {
         "languages": {"$ref": "#/$defs/languages"},
         "time_zone": {"$ref": "#/$defs/time_zone"}
@@ -100,6 +105,7 @@
       "anyOf": [{"required": ["languages"]}, {"required": ["time_zone"]}]
     },
     "register": {
+      "type": "object",
       "required": ["challenge", "server"],
       "properties": {
         "challenge": {"type": "string", "pattern": "^[A-Za-z0-9_-]{16,128}$"},
@@ -107,6 +113,7 @@
       }
     },
     "info": {
+      "type": "object",
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["device", "bound", "network"],
       "properties": {
@@ -128,22 +135,26 @@
       }
     },
     "networks": {
+      "type": "object",
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["networks"],
       "properties": {"networks": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/network"}}}
     },
-    "joined": {"allOf": [{"$ref": "#/$defs/answer"}], "required": ["network"], "properties": {"network": {"$ref": "#/$defs/network_status"}}},
+    "joined": {"type": "object", "allOf": [{"$ref": "#/$defs/answer"}], "required": ["network"], "properties": {"network": {"$ref": "#/$defs/network_status"}}},
     "configured": {
+      "type": "object",
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["languages", "time_zone"],
       "properties": {"languages": {"$ref": "#/$defs/languages"}, "time_zone": {"$ref": "#/$defs/time_zone"}}
     },
     "registration": {
+      "type": "object",
       "allOf": [{"$ref": "#/$defs/answer"}],
       "required": ["registration"],
       "properties": {"registration": {"type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$", "maxLength": 4096}}
     },
     "error": {
+      "type": "object",
       "required": ["code", "message"],
       "properties": {
         "code": {"type": "string", "pattern": "^[a-z_]{1,32}$"},
@@ -151,19 +162,19 @@
       }
     },
 
-    "is_hello": {"required": ["type"], "properties": {"type": {"const": "hello"}}},
-    "is_share": {"required": ["type"], "properties": {"type": {"const": "share"}}},
-    "is_confirm": {"required": ["type"], "properties": {"type": {"const": "confirm"}}},
-    "is_info": {"required": ["type"], "properties": {"type": {"const": "info"}}},
-    "is_networks": {"required": ["type"], "properties": {"type": {"const": "networks"}}},
-    "is_join": {"required": ["type"], "properties": {"type": {"const": "join"}}},
-    "is_joined": {"required": ["type"], "properties": {"type": {"const": "joined"}}},
-    "is_configure": {"required": ["type"], "properties": {"type": {"const": "configure"}}},
-    "is_configured": {"required": ["type"], "properties": {"type": {"const": "configured"}}},
-    "is_register": {"required": ["type"], "properties": {"type": {"const": "register"}}},
-    "is_registration": {"required": ["type"], "properties": {"type": {"const": "registration"}}},
-    "is_finished": {"required": ["type"], "properties": {"type": {"const": "finished"}}},
-    "is_error": {"required": ["type"], "properties": {"type": {"const": "error"}}},
+    "is_hello": {"type": "object", "required": ["type"], "properties": {"type": {"const": "hello"}}},
+    "is_share": {"type": "object", "required": ["type"], "properties": {"type": {"const": "share"}}},
+    "is_confirm": {"type": "object", "required": ["type"], "properties": {"type": {"const": "confirm"}}},
+    "is_info": {"type": "object", "required": ["type"], "properties": {"type": {"const": "info"}}},
+    "is_networks": {"type": "object", "required": ["type"], "properties": {"type": {"const": "networks"}}},
+    "is_join": {"type": "object", "required": ["type"], "properties": {"type": {"const": "join"}}},
+    "is_joined": {"type": "object", "required": ["type"], "properties": {"type": {"const": "joined"}}},
+    "is_configure": {"type": "object", "required": ["type"], "properties": {"type": {"const": "configure"}}},
+    "is_configured": {"type": "object", "required": ["type"], "properties": {"type": {"const": "configured"}}},
+    "is_register": {"type": "object", "required": ["type"], "properties": {"type": {"const": "register"}}},
+    "is_registration": {"type": "object", "required": ["type"], "properties": {"type": {"const": "registration"}}},
+    "is_finished": {"type": "object", "required": ["type"], "properties": {"type": {"const": "finished"}}},
+    "is_error": {"type": "object", "required": ["type"], "properties": {"type": {"const": "error"}}},
 
     "from_app": {
       "$ref": "#/$defs/message",

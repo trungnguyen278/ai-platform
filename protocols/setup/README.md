@@ -2,21 +2,23 @@
 
 How the owner's app sets up a device: its Wi-Fi network, its first settings, and its registration into a home on `ai-cloud`. A robot is the first kind of device ([ADR-0001](../../docs/decisions/0001-repositories.md), decision 5).
 - On the robot (ai-robot's `software/`), it is the `setup` module, with its `setup_link` and `network` ports.
-- In the app, [ai-app](https://github.com/trungnguyen278/ai-app), it is not built yet.
+- In the app, [ai-app](https://github.com/trungnguyen278/ai-app), it is a client of the device's Bluetooth service, without its screens yet.
 
-Version **2.0**:
+Version **2.1**:
 - It follows ai-robot's [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), accepted, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) into a home ([ADR-0005](../../docs/decisions/0005-homes.md)).
 - The app gets the challenge from the cloud, and relays the registration to it, through [the app API](../app/README.md#devices), from its version 1.4 ([ADR-0012](../../docs/decisions/0012-registering-devices.md)).
 - It meets the [requirements](../cloud/requirements.md) on set-up and ownership (PROV-1 to PROV-4), and SEC-3, SEC-5 and SEC-16.
 - The app runs it in the steps of [ADR-0013](../../docs/decisions/0013-setting-devices-up.md), which also give a device already bound another network, without registering it again ([How the app runs it](#how-the-app-runs-it)).
+- Its messages are JSON that every side can hold ([ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md)).
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12.
-- [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys. It also holds a device already bound being given another network, from the end of its exchange.
+- [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys. It also holds a device already bound being given another network, from the end of its exchange, and the errors that end a session before it starts.
 
 **Version notes:**
-- **2.0** speaks of devices: `device` in `info`, `device-registration+jwt`, and the labels `ai-platform/setup/2`. The challenge registers the device into a home ([ADR-0005](../../docs/decisions/0005-homes.md)). `configure` gives the device its first languages and time zone ([ADR-0002](../../docs/decisions/0002-languages.md)). Messages are numbered, `seq`, as in the cloud link 3.0 ([ADR-0004](../../docs/decisions/0004-conventions.md)).
+- **2.1** holds messages to [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md), and says plainly what 2.0 left open, which applies to 2.0 sides too: a fragment that carries no bytes, how much a receiver holds, and each fragment that does not fit; `reply_to` on the errors of the exchange; `busy`, which answers a second app's `hello`, and reaches that app only; and an app that connects once set-up has closed. A 2.0 side reads every 2.1 message.
+- 2.0 speaks of devices: `device` in `info`, `device-registration+jwt`, and the labels `ai-platform/setup/2`. The challenge registers the device into a home ([ADR-0005](../../docs/decisions/0005-homes.md)). `configure` gives the device its first languages and time zone ([ADR-0002](../../docs/decisions/0002-languages.md)). Messages are numbered, `seq`, as in the cloud link 3.0 ([ADR-0004](../../docs/decisions/0004-conventions.md)).
 - 1.0 was the robot's, as ai-robot's ADR-0015 decided.
 
-> **Implemented:** by the robot ([ai-robot#34](https://github.com/trungnguyen278/ai-robot/pull/34)). The app and the cloud's side, not yet.
+> **Implemented:** version 2.0 by the robot ([ai-robot#34](https://github.com/trungnguyen278/ai-robot/pull/34)), and by the app's client ([ai-app#23](https://github.com/trungnguyen278/ai-app/pull/23)), whose screens are not built yet. The cloud's side, the registration, through the app API 1.4 ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)). Version 2.1, by neither side yet: the robot still answers the exchange's errors without `reply_to`, and `busy` at once, without `reply_to`, to every app it indicates to.
 
 ## How it goes
 
@@ -49,10 +51,10 @@ The device is open to set-up only on request, and for a limited time (SEC-16).
 | | |
 |---|---|
 | **Opens** | From start, while the device is not bound (PROV-3), and when the owner asks on the device. Each time, the device draws a new discriminator, code and salt. |
-| **Closes** | After `window` (15 minutes on the robot), on `finish`, when the owner cancels on the device, or after `attempts` failed attempts (20). |
-| **Advertising** | Only while set-up is open and no session runs. One session at a time: a second app gets the error `busy`. |
+| **Closes** | After `window` (15 minutes on the robot), on `finish`, when the owner cancels on the device, or after `attempts` failed attempts (20). An app that connects once set-up has closed gets no message: the device ends the connection, and the app meets an interruption ([How the app runs it](#how-the-app-runs-it)). |
+| **Advertising** | Only while set-up is open and no session runs. One session at a time: a second app gets the error `busy` ([Errors](#errors)). |
 | **A failed attempt** | A session that sent a `share` but did not confirm. The device then shows a new code, with a new salt. |
-| **An idle session** | The device ends a session that has sent nothing for `idle` seconds (120). |
+| **An idle session** | The device ends a session that has sent no whole message for `idle` seconds (120): fragments alone do not keep it open. |
 
 These durations and counts are the device's settings; the values above are the robot's, in `[modules.setup]` of ai-robot's `software/config/base.toml`.
 
@@ -83,27 +85,34 @@ These durations and counts are the device's settings; the values above are the r
 - **Fragments.** A message is split into fragments, one per write or indication, each at most the ATT MTU minus 3 bytes. The smallest MTU, 23, leaves 20 bytes.
   - Byte 0 holds flags: `0x80` on a message's first fragment, `0x40` on its last; the other bits are 0.
   - The first fragment then holds the message's length in bytes, on 2 bytes, big-endian, then the message's first bytes.
-  - A message has at most **8192** bytes.
+  - A message has 1 to **8192** bytes.
+  - A fragment may carry none of the message's bytes, after its flags and, on a first fragment, the length: it adds nothing.
+  - **What a receiver holds:** the announced length at most, however many fragments come. Fragments without bytes cost it nothing to hold.
 - **Order.** The app makes one write at a time, and the device sends one indication at a time, each confirmed before the next: no other flow control is needed.
-- **Errors.** Either side ends the session on a fragment that does not fit: a continuation with no first fragment, a first fragment within a message, or more or fewer bytes than announced.
+- **To whom.** The device indicates a message only to the app it answers: a second app's `busy` never reaches the app whose session runs.
+- **Errors.** Either side ends the session on a fragment that does not fit, without a message, since none could be read:
+  - a fragment without its flags byte, or with a flag other than `0x80` and `0x40`;
+  - a first fragment too short to hold the length, or that announces a length outside 1 to 8192;
+  - a continuation with no first fragment, or a first fragment within a message;
+  - more bytes than announced, or fewer once the last fragment has come.
 
 ## The session
 
 ### Before the exchange, in the clear
 
-Messages are JSON objects, in UTF-8. Each has a `type`, and a `seq`: each side numbers its messages from 1, its `hello` included. An answer also has `reply_to`, the `seq` of the message it answers.
+Messages are JSON objects, in UTF-8, that every side can hold ([ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md)): a side refuses one that it cannot hold as one that it cannot read, however far its reader got ([Errors](#errors)). Each has a `type`, and a `seq`: each side numbers its messages from 1, its `hello` included. An answer also has `reply_to`, the `seq` of the message it answers.
 
 | From | Message | Fields |
 |---|---|---|
-| App | `hello` | `protocol`: the version it speaks, `"2.0"` |
+| App | `hello` | `protocol`: the version it speaks, `"2.1"` |
 | Device | `hello` | `protocol`; `discriminator`; `salt`: 16 random bytes, in base64url |
 | App | `share` | `share`: SPAKE2+'s shareP |
 | Device | `share` | `share`: shareV; `confirm`: confirmV |
 | App | `confirm` | `confirm`: confirmP |
 
-- **Versions.** If the app's major version is not the device's, the device answers the error `version` and ends the session. A newer minor version only adds optional fields and messages.
+- **Versions.** If the app's major version is not the device's, the device answers the error `version`, with `reply_to` 1, and ends the session. A newer minor version only adds optional fields and messages.
 - **Points and tags** are in base64url, without padding: a point in SEC1's uncompressed form, 65 bytes, and a tag of 32 bytes.
-- **A wrong code.** If confirmP is wrong, the device answers the error `code` and ends the session. The app sees a wrong confirmV first, and ends it itself. Either way, the device then shows a new code.
+- **A wrong code.** If confirmP is wrong, the device answers the error `code`, with `reply_to` 3, and ends the session. The app sees a wrong confirmV first, and ends it itself. Either way, the device then shows a new code.
 - Then the device accepts nothing in the clear any more.
 
 ### SPAKE2+
@@ -169,12 +178,12 @@ The app sends one request at a time, and waits for its answer.
 
 ### Errors
 
-An error is a message of type `error`, with `reply_to` when it answers a message, a `code`, and a `message` for people.
+An error is a message of type `error`, with a `code`, and a `message` for people. It has `reply_to`, the `seq` of the message it answers, whenever that `seq` can be read: in the exchange too, as `version` and `code` do. Only an error about a message that cannot be read has none: one that is not JSON, not an object or without a `seq`, or JSON that a side cannot hold, however far its reader got (ADR-0014). That error ends the session.
 
 | `code` | When |
 |---|---|
 | `version` | No common major version |
-| `busy` | Another session runs |
+| `busy` | Another session runs. The device answers a second app's `hello` with it, once the `hello`'s last fragment has come: its `seq` 1, `reply_to` 1. It then ends that connection, and the session that runs goes on ([`errors.json`](examples/errors.json)). |
 | `code` | The confirmation is wrong: a wrong code, or someone in between |
 | `protocol` | A message out of place, or one that breaks the schema |
 | `unknown` | A request the device does not know, of a newer minor version |

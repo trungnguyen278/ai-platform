@@ -5,7 +5,7 @@ These conventions apply to everyone working in this repository — people and AI
 ## Rules
 
 1. **Defined once.** A protocol between repositories is defined here and nowhere else. The sides read the schemas from their pin of this repository, or generate from them; nobody copies a definition by hand.
-2. **The specification, the schema and the examples change together**, in the same commit. Every example validates against its schema, and every pattern keeps to what every engine reads alike ([ADR-0010](docs/decisions/0010-patterns.md)). `tools/check.py` checks both.
+2. **The specification, the schema and the examples change together**, in the same commit. Every example validates against its schema and holds only JSON that every side can hold ([ADR-0014](docs/decisions/0014-json-every-side-can-hold.md)), every pattern keeps to what every engine reads alike ([ADR-0010](docs/decisions/0010-patterns.md)), and every keyword of one type, such as `properties`, has its type declared where Ajv's strict mode looks for it. `tools/check.py` checks all of it.
 3. **Versions mean something.** A minor version only adds what the other side may ignore; anything else is a major version. A published version is never changed: a correction is a new version.
 4. **Every side follows.** A change lands here first. Each side then implements it in a pull request that moves its pin, and tests against the examples. A protocol's README says which version each side implements.
 5. **Devices, not one product.** The protocols serve any device of the project. What one kind of device needs, such as a robot's motion, it declares as capabilities, rather than the protocol assuming it ([ADR-0001](docs/decisions/0001-repositories.md)).
