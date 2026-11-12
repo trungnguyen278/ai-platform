@@ -6,20 +6,22 @@ The device's core AI runs in the cloud. The device listens, plays, shows and act
 - the session: what the device is and can do, the cloud's calls, and the device's events;
 - conversations: opened on the session, with their audio in a LiveKit room of their own.
 
-Version **3.0**:
+Version **3.1**:
 - It builds on:
   - [ADR-0006](../../docs/decisions/0006-two-channels.md): a control channel always on, and media only to talk;
   - [ADR-0002](../../docs/decisions/0002-languages.md), [ADR-0003](../../docs/decisions/0003-compatibility.md) and [ADR-0004](../../docs/decisions/0004-conventions.md): languages, compatibility and conventions;
+  - [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md): JSON that every side can hold;
   - ai-robot's [ADR-0008](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0008-cloud-link-messages.md) (typed JSON messages, and MCP for capabilities), [ADR-0009](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0009-cloud-link-webrtc.md) (WebRTC through LiveKit, now for conversations only), [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) (the device's identity) and [ADR-0012](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0012-end-of-speech.md) (the cloud ends the user's speech).
 - It meets the [requirements](requirements.md), whose identifiers (SES-2, PRIV-1…) it cites.
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
-- **3.0** splits the link in two: the session on a WebSocket to `ai-cloud`, always open, and a LiveKit room for each conversation, with its audio, its turns and its answers. A conversation lasts many turns, which the cloud takes. The link speaks of devices: `/device/token`, and the device's kind and model in its `hello`. Identifiers are UUIDs, instants RFC 3339 and durations seconds. Messages are numbered, so that a session survives a short loss of its connection. A version the cloud no longer speaks gets "update required".
+- **3.1** says what JSON a side holds, and ends a session with `bye` `invalid_message` on a frame that it cannot answer, such as a `ping` that it cannot read or a message without its number, and on a message too large, with WebSocket's 1009 ([Messages](#messages)). It also names the token endpoint's refusals, `429` among them. A 3.0 side takes the new reason as `error`, and any refusal but `invalid_client` as one to retry.
+- 3.0 splits the link in two: the session on a WebSocket to `ai-cloud`, always open, and a LiveKit room for each conversation, with its audio, its turns and its answers. A conversation lasts many turns, which the cloud takes. The link speaks of devices: `/device/token`, and the device's kind and model in its `hello`. Identifiers are UUIDs, instants RFC 3339 and durations seconds. Messages are numbered, so that a session survives a short loss of its connection. A version the cloud no longer speaks gets "update required".
 - 2.2 had the cloud end the user's speech; 2.1 added the token endpoint; 2.0 carried everything in a LiveKit room; 1.0 carried everything over one WebSocket ([ai-robot ADR-0007](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0007-cloud-link-transport.md), superseded).
 - No cloud ever spoke 1.x or 2.x, and no device left the workshop with them. The cloud speaks 3.0 only, and ADR-0003's periods start with it.
 
-> **Implemented:** by the robot ([ai-robot#36](https://github.com/trungnguyen278/ai-robot/pull/36), [ai-robot#38](https://github.com/trungnguyen278/ai-robot/pull/38)). The cloud's side, not yet.
+> **Implemented:** version 3.0 by the robot ([ai-robot#36](https://github.com/trungnguyen278/ai-robot/pull/36), [ai-robot#38](https://github.com/trungnguyen278/ai-robot/pull/38)). By the cloud, the token endpoint ([ai-cloud#26](https://github.com/trungnguyen278/ai-cloud/pull/26)) and the session on the control channel, without resuming, conversations or events yet ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)). Version 3.1, by neither yet.
 
 ## Two channels
 
@@ -88,9 +90,19 @@ The server answers with JSON ([`schema.json`](schema.json), `$defs/token_respons
 {"access_token": "eyJhbGciOiJFUzI1NiIs...", "token_type": "Bearer", "expires_in": 600}
 ```
 
-- **Refusals** follow OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), §5.2): status 400 or 401, and JSON with `error` and `error_description`.
-  - `invalid_client` means a key the server does not know, or one that was revoked: the device is not set up. It then offers set-up ([the set-up protocol](../setup/README.md), PROV-3).
-  - After any other refusal, the device tries again after the backoff ([Staying connected](#staying-connected)).
+- **Refusals** follow OAuth 2.0 ([RFC 6749](https://www.rfc-editor.org/rfc/rfc6749), §5.2): a status, and JSON with `error` and `error_description`.
+
+  | Status | `error` | Meaning |
+  |---|---|---|
+  | 401 | `invalid_client` | A key the server does not know, or one that was revoked: the device is not set up |
+  | 400 | `invalid_grant` | The assertion of a key the server knows fails: its signature, its times, its audience, its issuer, or a `jti` already seen |
+  | 400 | `invalid_request` | The request or the assertion is malformed: a parameter missing or repeated, or no JWT |
+  | 429 | `temporarily_unavailable` | The device asks too often. `Retry-After` says when to ask again ([RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), §4). |
+
+  - **After `invalid_client`,** the device offers set-up ([the set-up protocol](../setup/README.md), PROV-3).
+  - **After any other refusal,** the device tries again after the backoff ([Staying connected](#staying-connected)), and no sooner than `Retry-After` if the answer has one, in seconds or as a date ([RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), §10.2.3).
+  - **Not `invalid_client` for a failing assertion.** RFC 7523 gives `invalid_client` to any client JWT that fails (§3.2). Here that code alone makes a device offer set-up, so a clock far off would unbind it. A failing assertion gets `invalid_grant` instead: RFC 6749's code for a grant that is invalid or expired (§5.2), and what RFC 7523 answers for the same checks when the JWT is the grant (§3.1). With `client_credentials`, the client's credentials are the grant (RFC 6749, §1.3.4).
+  - **`temporarily_unavailable`** is the code that RFC 6749 gives a server too busy to answer (§4.1.2.1). The device acts on the status.
 - **No redirects.** The endpoint answers itself. The device does not follow a redirect, which would carry its assertion to an address it never chose: it takes one as a refusal.
 - **The clock.** The device keeps its clock right (NTP); the server refuses assertions from a clock far off.
 
@@ -117,7 +129,7 @@ Authorization: Bearer eyJhbGciOiJFUzI1NiIs...
   |---|---|---|
   | 401 | The access token is not valid | Gets a new token, and connects again after the backoff |
   | 410 | The cloud no longer speaks this major version | Updates ([Update required](#update-required)) |
-  | Any other | Too many connections, the cloud is busy or down | Connects again after the backoff, and no sooner than `Retry-After` if the answer has one |
+  | 429, 503 or any other | The device connects too often ([RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), §4), or the cloud is busy or down | Connects again after the backoff, and no sooner than `Retry-After` if the answer has one, in seconds or as a date ([RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), §10.2.3) |
 
 - **One connection per device.** A new connection replaces the device's older one, which the cloud ends with `bye` `replaced`.
 
@@ -156,10 +168,18 @@ A session outlives a short loss of its connection (SES-5), as a session of Disco
   - `type`, in lower case, with dots (`turn.speech_end`);
   - `seq`, its number, in every message but `hello`, `ping`, `pong`, `reconnect` and `bye`;
   - `reply_to`, in a message that answers another: that message's `seq`.
-- **Sizes.** A message holds up to 1 MiB. A side stops reading a larger one, answers `invalid_message`, and ignores it.
+- **JSON that every side can hold** ([ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md)). A message is I-JSON ([RFC 7493](https://www.rfc-editor.org/rfc/rfc7493)): no surrogate or noncharacter code point, no number past a double, no name twice in an object. No name or string holds U+0000, and arrays and objects nest at most 64 deep, the message's own object included.
+  - A side refuses a text that holds a lone surrogate or a U+0000, or that nests deeper than it reads, at least 64, as a frame that it cannot answer ([Validation](#messages)), however far its reader got. It may refuse the rest of what I-JSON forbids, the same way.
+- **Sizes.** A message holds up to 1 MiB of UTF-8. A side that receives a larger one closes the connection with WebSocket's 1009, "message too big" ([RFC 6455](https://www.rfc-editor.org/rfc/rfc6455), §7.4.1), as the libraries do once a limit set to 1 MiB is reached: uvicorn's (`ws_max_size`) and aiohttp's (`max_msg_size`). No `bye` can follow on that connection.
+  - Both sides then end the session, as `bye` `invalid_message` would: the sender would send the same message again on a resumed one. The device connects again after the backoff, for a new session.
+  - MQTT 5 also ends the connection on a packet larger than the receiver takes ([MQTT 5.0](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html), §3.1.2.11.4).
 - **Order.** Messages arrive in the order sent, and each side handles them in that order.
 - **Values** ([ADR-0004](../../docs/decisions/0004-conventions.md)): identifiers are UUIDs, made as UUIDv7 ([RFC 9562](https://www.rfc-editor.org/rfc/rfc9562), §5.7); instants are [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), in UTC; durations are seconds; numbers are finite, since JSON has no NaN; languages are BCP 47 tags ([ADR-0002](../../docs/decisions/0002-languages.md)).
-- **Validation.** Each side validates what it receives against [`schema.json`](schema.json) (SEC-14). A message that fails gets an `error`, and is otherwise ignored: the session goes on (REL-4).
+- **Validation.** Each side validates what it receives against [`schema.json`](schema.json) (SEC-14), and tells first whether it can answer it:
+  - **A message that it can answer** is a JSON object, which every side can hold, whose `type` is a string, and whose `seq` is a number from 1 to 2<sup>53</sup> − 1, but in `hello`, `ping`, `pong`, `reconnect` and `bye`. One that fails gets an `error` `invalid_message` with that `seq` in `reply_to`, and is otherwise ignored; its number counts as handled, and the session goes on (REL-4).
+  - **A frame that it cannot answer** ends the session with `bye` `invalid_message`: a binary frame; text that is not JSON, or not JSON that every side can hold; JSON that is not an object; an object without a `type` that is a string; a message of a numbered type without a `seq` that is a number; and a `hello`, a `ping`, a `pong` or a `reconnect` that fails. Such a frame has no number for an `error` to answer, and may have taken one: ignored, it would end the session later as `out_of_sequence`; counted, it could make the next message look like a duplicate, dropped unseen.
+  - HTTP/2 draws the same line: an error tied to a stream resets that stream, and an error it cannot tie to one ends the connection ([RFC 9113](https://www.rfc-editor.org/rfc/rfc9113), §5.4). MQTT 5 ends a connection on a "Malformed Packet" ([MQTT 5.0](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html), §2.4), and Discord's gateway closes with "Decode error" ([Discord](https://docs.discord.com/developers/topics/opcodes-and-status-codes)).
+  - A session that ends this way is no failure of REL-4: the device connects again after the backoff, for a new session.
 - **Unknown content.** A side ignores message types and fields it does not know, so that a newer minor version can add them (REL-5). A `reason` it does not know, it takes as `error`.
 - **Rates** (SEC-15). Each side limits what it takes from the other. The device handles up to `rate` messages a second, in bursts of up to `burst`; up to `backlog` more wait their turn, so a busy answer loses nothing. Past the backlog, it drops what comes, says so with `rate_limited`, and logs it.
 
@@ -229,6 +249,7 @@ The cloud answers:
 | `events` | The events the cloud subscribes to. The device sends only those, and only declared ones. |
 
 - **No answer.** Each side waits `hello_timeout` for the other's `hello`. Past it, it sends `bye` `no_hello` and closes the connection.
+- **A `hello` that a side cannot read,** or that fails `schema.json`, gets `bye` `invalid_message`, as any frame that it cannot answer does ([Validation](#messages)).
 - **Another major version** in a `hello` than in the path is refused with `bye` `unsupported_protocol`.
 - **A conversation the cloud no longer knows**, named by a device's `hello`, is ended by the cloud with `conversation.end` `lost`.
 
@@ -260,6 +281,7 @@ Before ending a session on purpose, a side sends `bye` (SES-7), then closes the 
 | `unsupported_protocol` | cloud | The `hello` named another major version than the path |
 | `resume_failed` | device | The device cannot send again what the cloud asked for |
 | `out_of_sequence` | both | A message skipped a number |
+| `invalid_message` | both | A frame could not be answered: it could not be read, it had no number, or it was a `hello`, a `ping`, a `pong` or a `reconnect` that failed `schema.json` ([Validation](#messages)). Since 3.1. |
 
 After any other reason, the device connects again after the backoff, for a new session. `bye` may add a `message`, for logs.
 
@@ -450,7 +472,7 @@ The device ends a conversation on its own after `idle` or `longest`, whatever th
 
 | Code | Meaning |
 |---|---|
-| `invalid_message` | The message failed `schema.json`, or was too large |
+| `invalid_message` | The message failed `schema.json` ([Validation](#messages)) |
 | `unknown_conversation` | The message names a conversation the receiver does not know |
 | `not_allowed` | The device's owner does not allow it (SEC-9) |
 | `busy` | The device is in another conversation |
@@ -459,7 +481,7 @@ The device ends a conversation on its own after `idle` or `longest`, whatever th
 | `rate_limited` | The sender sent too many messages; some were dropped |
 | `internal` | The receiver failed to handle a valid message |
 
-An error answers a numbered message. A side that cannot handle a `hello`, a `ping` or a `pong` ends the session with `bye`. A code a side does not know, it takes as `internal`.
+An error answers a numbered message, whose `seq` it carries in `reply_to`. A frame that has no number to answer ends the session with `bye` `invalid_message` instead, and a message too large with WebSocket's 1009 ([Validation and Sizes](#messages)). A code a side does not know, it takes as `internal`.
 
 ## Update required
 
@@ -485,7 +507,7 @@ How this version meets the [requirements](requirements.md#9-security):
 - **SEC-6:** the cloud ties a connection to the device its token names, and confines it to that device's data.
 - **SEC-7 to SEC-9:** the device checks every call against its catalogue, and enforces the safety classes itself. The cloud learns which classes are allowed, and never sets them. In the room, the device takes messages and audio from agents only.
 - **SEC-12, SES-6:** assertions are single-use (`jti`), and messages are numbered within a session, so that a duplicate has no effect. TLS keeps others from replaying them.
-- **SEC-14, SEC-15:** both sides validate every message, and bound sizes and rates.
+- **SEC-14, SEC-15:** both sides validate every message, and bound sizes, depth and rates.
 - **SEC-16:** the device only opens connections, and listens on none.
 - **PRIV-1:** audio leaves the device only in a conversation: one its user opens, or one the cloud opens with its owner's leave. The device ends conversations on its own (`idle`, `longest`, `muted`), and only agents may hear its microphone.
 - **PRIV-5:** `ping` and `pong` carry numbers only.
@@ -516,7 +538,7 @@ The names in `code` in this document are settings, of the device or of the cloud
 
 ## References
 
-- IETF: [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455) (WebSocket), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) (bearer tokens), [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) and [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523) (OAuth 2.0, and JWT client authentication), [RFC 7518](https://www.rfc-editor.org/rfc/rfc7518) and [RFC 7638](https://www.rfc-editor.org/rfc/rfc7638) (ES256, thumbprints), [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP semantics), [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Problem Details), [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562) (UUIDv7), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), [RFC 7874](https://www.rfc-editor.org/rfc/rfc7874) (WebRTC audio).
+- IETF: [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455) (WebSocket), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) (bearer tokens), [RFC 6749](https://www.rfc-editor.org/rfc/rfc6749) and [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523) (OAuth 2.0, and JWT client authentication), [RFC 7518](https://www.rfc-editor.org/rfc/rfc7518) and [RFC 7638](https://www.rfc-editor.org/rfc/rfc7638) (ES256, thumbprints), [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP semantics), [RFC 9113](https://www.rfc-editor.org/rfc/rfc9113) (HTTP/2, its errors), [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Problem Details), [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562) (UUIDv7), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339), [RFC 7874](https://www.rfc-editor.org/rfc/rfc7874) (WebRTC audio).
 - Retrieved 2026-10-28:
   - [Model Context Protocol, revision 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28), still the current one;
   - Discord: [the gateway](https://docs.discord.com/developers/events/gateway) (heartbeats with the last sequence number, resuming, and replaying missed events) and [voice connections](https://docs.discord.com/developers/topics/voice-connections) (the voice server's address and token, given on the gateway);
