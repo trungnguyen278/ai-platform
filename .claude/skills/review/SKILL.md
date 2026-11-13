@@ -45,6 +45,8 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **`reply_to` whenever the answered `seq` can be read,** in an exchange or a handshake too: an error that answers a `hello` or a `confirm` carries it. Only a message that could not be read, or held (ADR-0014), goes without.
 - **To whom a message goes:** with several peers connected, such as two apps over Bluetooth, an answer reaches the peer it answers only. BlueZ indicates a changed `Value` to every subscribed device; one device's own channel comes from `AcquireNotify` since BlueZ 5.80 (Ubuntu 26.04 has 5.85); before it, 5.69 to 5.79 included, an acquired channel still reached every subscribed device.
 - **Every way a framing can fail:** for fragments or frames, the text lists each case that does not fit (flags, a length out of range, too short to hold the length, out of order, too many or too few bytes) and what the receiver holds at most, empty fragments included.
+- **A size within every layer's limit:** a fragment fits the ATT MTU minus 3 and an attribute's 512 bytes too, which an MTU of 517, Android 14's, would pass. Look up each layer's limit, in the stack's source too, such as BlueZ's `BT_ATT_MAX_VALUE_LEN`.
+- **Bytes that a text cannot hold:** a value that comes as bytes, such as a network's name, can hold a NUL byte, which ADR-0014 keeps out of every text. The protocol gives it another form, such as `ssid_hex`, and says when a side uses it.
 
 ### The check
 

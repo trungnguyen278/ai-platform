@@ -4,7 +4,7 @@ How the owner's app sets up a device: its Wi-Fi network, its first settings, and
 - On the robot (ai-robot's `software/`), it is the `setup` module, with its `setup_link` and `network` ports.
 - In the app, [ai-app](https://github.com/trungnguyen278/ai-app), it is a client of the device's Bluetooth service, without its screens yet.
 
-Version **2.1**:
+Version **2.2**:
 - It follows ai-robot's [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), accepted, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) into a home ([ADR-0005](../../docs/decisions/0005-homes.md)).
 - The app gets the challenge from the cloud, and relays the registration to it, through [the app API](../app/README.md#devices), from its version 1.4 ([ADR-0012](../../docs/decisions/0012-registering-devices.md)).
 - It meets the [requirements](../cloud/requirements.md) on set-up and ownership (PROV-1 to PROV-4), and SEC-3, SEC-5 and SEC-16.
@@ -14,11 +14,12 @@ Version **2.1**:
 - [`examples/`](examples/) holds a whole session, in the clear, with what an app needs to replay its exchange byte for byte: the code, the salt, both sides' random scalars, the intermediate values and the session keys. It also holds a device already bound being given another network, from the end of its exchange, and the errors that end a session before it starts.
 
 **Version notes:**
-- **2.1** holds messages to [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md), and says plainly what 2.0 left open, which applies to 2.0 sides too: a fragment that carries no bytes, how much a receiver holds, and each fragment that does not fit; `reply_to` on the errors of the exchange; `busy`, which answers a second app's `hello`, and reaches that app only; and an app that connects once set-up has closed. A 2.0 side reads every 2.1 message.
+- **2.2** says what a device and an app found on Bluetooth and Wi-Fi, which applies to 2.0 and 2.1 sides too: a fragment holds 512 bytes at most, whatever the ATT MTU; a network's name that holds a NUL byte goes as `ssid_hex`; a device leaves out of `networks` each network that hides its name; and a `join` may name a network that `networks` did not list. A 2.1 side reads every 2.2 message.
+- 2.1 holds messages to [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md), and says plainly what 2.0 left open, which applies to 2.0 sides too: a fragment that carries no bytes, how much a receiver holds, and each fragment that does not fit; `reply_to` on the errors of the exchange; `busy`, which answers a second app's `hello`, and reaches that app only; and an app that connects once set-up has closed. A 2.0 side reads every 2.1 message.
 - 2.0 speaks of devices: `device` in `info`, `device-registration+jwt`, and the labels `ai-platform/setup/2`. The challenge registers the device into a home ([ADR-0005](../../docs/decisions/0005-homes.md)). `configure` gives the device its first languages and time zone ([ADR-0002](../../docs/decisions/0002-languages.md)). Messages are numbered, `seq`, as in the cloud link 3.0 ([ADR-0004](../../docs/decisions/0004-conventions.md)).
 - 1.0 was the robot's, as ai-robot's ADR-0015 decided.
 
-> **Implemented:** version 2.0 by the robot ([ai-robot#34](https://github.com/trungnguyen278/ai-robot/pull/34)), and by the app's client ([ai-app#23](https://github.com/trungnguyen278/ai-app/pull/23)), whose screens are not built yet. The cloud's side, the registration, through the app API 1.4 ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)). Version 2.1, by neither side yet: the robot still answers the exchange's errors without `reply_to`, and `busy` at once, without `reply_to`, to every app it indicates to.
+> **Implemented:** version 2.0 by the robot ([ai-robot#34](https://github.com/trungnguyen278/ai-robot/pull/34)), and by the app's client ([ai-app#23](https://github.com/trungnguyen278/ai-app/pull/23)), whose screens are not built yet. The cloud's side, the registration, through the app API 1.4 ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)). Version 2.1 by the robot ([ai-robot#44](https://github.com/trungnguyen278/ai-robot/pull/44)), which already does what 2.2 says, but for `busy` reaching its app only: BlueZ indicates it to every app until the robot indicates through `AcquireNotify` ([ai-robot#45](https://github.com/trungnguyen278/ai-robot/pull/45)). The app's client speaks 2.0, and sizes its fragments by the ATT MTU alone.
 
 ## How it goes
 
@@ -82,7 +83,8 @@ These durations and counts are the device's settings; the values above are the r
 
 - **No Bluetooth pairing.** The characteristics ask nothing of Bluetooth's own security: the session protects the messages, as Matter's does.
 - **First, indications.** The app enables Answer's indications, then writes its first fragment: the device counts it as connected from that write.
-- **Fragments.** A message is split into fragments, one per write or indication, each at most the ATT MTU minus 3 bytes. The smallest MTU, 23, leaves 20 bytes.
+- **Fragments.** A message is split into fragments, one per write or indication, each at most the ATT MTU minus 3 bytes, and never more than **512**, in both directions. The smallest MTU, 23, leaves 20 bytes.
+  - **Why 512:** an attribute's value holds 512 bytes at most (Bluetooth Core 6.0, Vol 3, Part F, 3.2.9), and an MTU can leave more: Android 14 asks for 517 whatever the app requests, which leaves 514. BlueZ 5.85 refuses a longer write (`check_length` in `src/shared/gatt-server.c`, against `BT_ATT_MAX_VALUE_LEN`, 512), and reads at most 512 bytes for each indication from an acquired channel (`sock_io_read` in `src/gatt-database.c`): a longer fragment would not arrive whole.
   - Byte 0 holds flags: `0x80` on a message's first fragment, `0x40` on its last; the other bits are 0.
   - The first fragment then holds the message's length in bytes, on 2 bytes, big-endian, then the message's first bytes.
   - A message has 1 to **8192** bytes.
@@ -158,14 +160,19 @@ The app sends one request at a time, and waits for its answer.
   - `software`, its version;
   - `languages` and `time_zone`, its settings now.
 - **A network**, in `networks`:
-  - `ssid`, its name; or `ssid_hex`, its name's bytes in hexadecimal, if they are not UTF-8;
+  - `ssid`, its name; or `ssid_hex`, its name's bytes in hexadecimal, if they are not UTF-8 or hold a NUL byte, which no text may hold ([ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md)). A name goes so wherever it goes: in `join`, and as the network the device is on;
   - `security`: `open` (no password, encrypted or not), `wpa2` (WPA2 Personal, or WPA2 and WPA3 mixed), `wpa3` (WPA3 Personal only), or `other` (a security the device does not join, such as WPA Enterprise);
   - `signal`, from 0 to 100;
   - `saved`: whether the device already has the network's password.
+  - **Hidden networks are left out:** a network that hides its name sends one of no bytes, of NUL bytes alone (hostapd's `ignore_broadcast_ssid` 1 and 2), or of a single space, as some access points do; NetworkManager reads all three as hidden (`_nm_utils_is_empty_ssid_arr`). The device lists none of them, since the app could not name them back.
 - **The network the device is on**, in `info` and `joined`:
   - `state`: `connected`, `connecting` or `disconnected`;
   - when connected, also `ssid` or `ssid_hex`, `address` (its IP address), and `internet` (whether it reaches the Internet, or `null` if not known yet).
 - **Joining** adds the network to those the device knows and keeps the others, so that a wrong password does not lose a network that worked. A saved network needs no `password`.
+- **A network that `networks` did not list** may be joined too: the list is what the device saw at its scan.
+  - Without `hidden`, the device joins the network of that name in reach, which tells it its security, or answers `not_found`.
+  - With `hidden` true, it probes for the network by its name, and keeps it as hidden, to find it again: NetworkManager's `802-11-wireless.hidden` and wpa_supplicant's `scan_ssid` 1 do so. `security` then says what no beacon does. `not_found` means that no network answered.
+  - Only `hidden` makes the device probe: a probe sends the name on the air, where anyone can read it, which NetworkManager calls a privacy issue, and wpa_supplicant's documentation enables it only when needed, as it adds latency to scanning.
 - **Configuring.** The app offers the languages and the time zone of the home it registers the device into, or the phone's ([ADR-0002](../../docs/decisions/0002-languages.md), [ADR-0005](../../docs/decisions/0005-homes.md)):
   - `languages` are BCP 47 tags, in the owner's order. The device keeps, in that order, those it supports; if it supports none, it keeps its own;
   - `time_zone` is an IANA name. One the device does not know gets the error `time_zone`, and nothing changes;
@@ -250,7 +257,8 @@ A JWT ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519)), signed with ES256 by
 | Field | Limit |
 |---|---|
 | A message | 8192 bytes |
-| `ssid` | 1 to 32 bytes in UTF-8; `ssid_hex`, 2 to 64 hexadecimal digits (IEEE 802.11) |
+| A fragment | The ATT MTU minus 3 bytes, and at most 512 |
+| `ssid` | 1 to 32 bytes in UTF-8, without U+0000; `ssid_hex`, 2 to 64 hexadecimal digits (IEEE 802.11) |
 | `password` | 1 to 128 characters. WPA2 Personal takes 8 to 63 characters, or 64 hexadecimal digits; WPA3 Personal, any length (NetworkManager's `psk`) |
 | `languages` | 1 to 16 BCP 47 tags, each up to 35 characters |
 | `time_zone` | Up to 64 characters |

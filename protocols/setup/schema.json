@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Set-up, the app and a device over Bluetooth LE, version 2.1",
+  "title": "Set-up, the app and a device over Bluetooth LE, version 2.2",
   "description": "Every message of the set-up protocol, as its JSON (README.md). from_app and from_device are the messages of each side, in the clear or, after the exchange, once decrypted. Unknown message types and fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "seq": {"type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "A message's number in its session"},
@@ -15,8 +15,8 @@
     "salt": {"description": "16 bytes, base64url without padding", "type": "string", "pattern": "^[A-Za-z0-9_-]{22}$"},
     "point": {"description": "A P-256 point in SEC1's uncompressed form, 65 bytes, base64url without padding", "type": "string", "pattern": "^[A-Za-z0-9_-]{87}$"},
     "tag": {"description": "An HMAC-SHA256 tag, 32 bytes, base64url without padding", "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$"},
-    "ssid": {"description": "A network's name, 1 to 32 bytes in UTF-8", "type": "string", "minLength": 1, "maxLength": 32},
-    "ssid_hex": {"description": "A network's name whose bytes are not UTF-8, in hexadecimal", "type": "string", "pattern": "^([0-9a-f]{2}){1,32}$"},
+    "ssid": {"description": "A network's name, 1 to 32 bytes in UTF-8, without U+0000 (ADR-0014)", "type": "string", "minLength": 1, "maxLength": 32},
+    "ssid_hex": {"description": "A network's name whose bytes are not UTF-8 or hold a NUL byte, in hexadecimal", "type": "string", "pattern": "^([0-9a-f]{2}){1,32}$"},
     "named": {
       "description": "Exactly one of ssid and ssid_hex",
       "type": "object",
