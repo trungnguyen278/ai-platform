@@ -63,9 +63,18 @@
             "security": "wpa2",
             "signal": 35,
             "saved": false
+          },
+          {
+            "ssid_hex": "4775657374003547",
+            "security": "open",
+            "signal": 20,
+            "saved": false
           }
         ]
       }
+    },
+    {
+      "note": "The robot also sees a network that hides its name, which it leaves out, and one whose name holds a NUL byte, \"Guest\", NUL, \"5G\", which it gives as `ssid_hex`: no text may hold U+0000 (ADR-0014)."
     },
     {
       "from": "app",
