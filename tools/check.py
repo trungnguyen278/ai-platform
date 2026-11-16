@@ -2,9 +2,9 @@
 """Check the protocols: every schema is valid JSON Schema, its patterns keep to ADR-0010,
 each keyword of one type has its type declared as Ajv's strictTypes asks, every example
 follows its schema, whose patterns are read as ECMA-262 reads them, and holds only JSON that
-every side can hold (ADR-0014), and a new minor version still accepts the examples of the
-version before it. Check the catalogs too: their schema, their examples, and the copy of
-MF2's test suite.
+every side can hold (ADR-0014), each protocol's README names the version of its schema's
+title, and a new minor version still accepts the examples of the version before it. Check
+the catalogs too: their schema, their examples, and the copy of MF2's test suite.
 
     python tools/check.py
 
@@ -199,6 +199,57 @@ def check_holding() -> list[str]:
         f"tools/check.py: {'refuses' if valid else 'accepts'} {text[:80]!r}"
         for text, valid in PLANTED_TEXTS
         if bool(held(text)) == valid
+    ]
+
+
+# Where a protocol's README names its version, which must be its schema's title's: the line
+# "Version **M.m**:", and the first of its version notes, "- **M.m** adds…".
+README_VERSIONS = (
+    ("its version", re.compile(r"^Version \*\*(\d+)\.(\d+)\*\*:", re.MULTILINE)),
+    (
+        "its first version note",
+        re.compile(r"^\*\*Version notes:\*\*\n- \*\*(\d+)\.(\d+)\*\*", re.MULTILINE),
+    ),
+)
+
+
+def named_versions(readme: str, major: int, minor: int) -> list[str]:
+    """Problems with the versions that a protocol's README names, against `major.minor`."""
+    problems = []
+    for what, pattern in README_VERSIONS:
+        found = [".".join(pair) for pair in pattern.findall(readme)]
+        if found != [f"{major}.{minor}"]:
+            named = ", ".join(found) or "no version"
+            problems.append(
+                f"the README names {named} as {what}, the schema's title {major}.{minor}"
+            )
+    return problems
+
+
+# READMEs that the check of their versions must accept, and refuse, against a version.
+PLANTED_READMES: tuple[tuple[str, int, int, bool], ...] = (
+    ("Version **2.2**:\n\n**Version notes:**\n- **2.2** adds.\n- 2.1 adds.\n", 2, 2, True),
+    ("Version **12.10**:\n\n**Version notes:**\n- **12.10** adds.\n", 12, 10, True),
+    ("Version **2.2**:\n\n**Version notes:**\n- **2.2** adds.\nVersion **2.1** came first.\n", 2, 2,
+     True),
+    ("Version **2.1**:\n\n**Version notes:**\n- **2.2** adds.\n", 2, 2, False),
+    ("Version **2.2**:\n\n**Version notes:**\n- **2.1** adds.\n", 2, 2, False),
+    ("Version **2.2**:\n\n**Version notes:**\n- 2.1 adds.\n- **2.2** adds.\n", 2, 2, False),
+    ("Version **2.20**:\n\n**Version notes:**\n- **2.2** adds.\n", 2, 2, False),
+    ("Version **12.2**:\n\n**Version notes:**\n- **2.2** adds.\n", 2, 2, False),
+    ("Version **2.2**:\nVersion **2.1**:\n\n**Version notes:**\n- **2.2** adds.\n", 2, 2, False),
+    ("**Version notes:**\n- **2.2** adds.\n", 2, 2, False),
+    ("Version **2.2**:\n", 2, 2, False),
+)
+
+
+def check_naming() -> list[str]:
+    """Problems with the check of a README's versions: it must accept and refuse the planted
+    READMEs."""
+    return [
+        f"tools/check.py: {'refuses' if valid else 'accepts'} {readme!r} for {major}.{minor}"
+        for readme, major, minor, valid in PLANTED_READMES
+        if bool(named_versions(readme, major, minor)) == valid
     ]
 
 
@@ -578,6 +629,7 @@ def main() -> int:
     problems: list[str] = check_catalogs()
     problems += check_reading()
     problems += check_holding()
+    problems += check_naming()
     schemas = {
         path.relative_to(ROOT).as_posix(): json.loads(path.read_text(encoding="utf-8"))
         for path in [*sorted(PROTOCOLS.glob("*/schema.json")), CATALOGS / "schema.json"]
@@ -593,6 +645,9 @@ def main() -> int:
             problems.append(f"{name}: the schema's title gives no version")
             continue
         major, minor = int(version[1]), int(version[2])
+        readme = (folder / "README.md").read_text(encoding="utf-8")
+        problems += [f"{name}/README.md: {problem}" for problem in
+                     named_versions(readme, major, minor)]
         examples = sorted((folder / "examples").glob("*.json"))
         if not examples:
             problems.append(f"{name}: no examples")

@@ -24,7 +24,7 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 ### A protocol
 
 - **Together:** the specification, the schema, the examples and the version notes say the same thing.
-- **Versions:** the bump matches the change. Could an old side still talk to a new one, as the version promises? A minor version that makes a field required, narrows a range or changes a meaning is a major one.
+- **Versions:** the bump matches the change. Could an old side still talk to a new one, as the version promises? A minor version that makes a field required, narrows a range or changes a meaning is a major one. The README's version, its first version note and the schema's title name the same one, which `tools/check.py` checks: the check takes the version from the title alone, to find the tag before it.
 - **Bounds:** every new string has a length, every number a range, every list a size, so that each side can refuse what is too big (SEC-14, SEC-15). Numbers are finite: JSON has no NaN.
 - **Unknowns:** what does each side do with a message, a field or a value it does not know? The specification says.
 - **Dispatch:** in `from_app` and `from_cloud`, a new body must not set off another definition's `if`, and the catch-all must leave it out: a device's `kind` would have read it as a member. Two requests whose bodies have one shape, such as a home's and a device's new `name`, cannot be told apart: one definition reads both, and it must agree with each on every field, as `from_app`'s description says. Plant good and broken bodies through the dispatch, and against their own definition, which a side may use alone.

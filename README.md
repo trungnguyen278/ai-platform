@@ -43,7 +43,7 @@ Each repository pins this one as a git submodule at `platform/`. A pin moves in 
 
 ## Versions
 
-- Each protocol has its own version, *major.minor*, in its README and its schema's title.
+- Each protocol has its own version, *major.minor*, in its README, its first version note and its schema's title, which `tools/check.py` holds to one.
   - A minor version adds what the other side may ignore.
   - A major version changes or removes something.
 - The two sides of a link say their versions when they meet, and keep to what both support, so that a device and the cloud need not move together.
