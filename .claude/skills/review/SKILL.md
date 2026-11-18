@@ -31,6 +31,7 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **Optional for the previous tag:** the check validates the previous minor version's tagged examples against the new schema, so a field that a minor version adds stays optional in the schema. The specification says from which version a side sends it, and what the other does when it is absent.
 - **Interruptions:** for a sequence across sides, such as set-up, walk each point where it can stop, and say what starting again finds there, and what the app then does.
 - **Limits and retries:** a limit refuses only what a request adds. A retry, or a thing already there, still gets its answer at the limit.
+- **An act that ends the session,** such as a device's `leave`: its answer can be lost with the connection, and nothing resumes the session after it. The answer comes only once the act is done, and the text says how the sender learns the outcome afterwards, such as from the refusal it then meets. A restart of the sender between the act and what follows it, such as a device's erase, still leads where the act meant to.
 - **Matching:** a thing found by one of its keys must match the others too, such as a device's key and its identifier. Identifiers compare as their type does: a UUID in any case.
 - **Errors:** each failure has a code, and the specification says which side sends it and what the other then does.
 - **Devices:** nothing assumes one product; what one kind of device needs is a capability it declares.

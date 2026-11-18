@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Cloud link, version 3.1",
+  "title": "Cloud link, version 3.2",
   "description": "Every message of protocols/cloud/README.md. On the control channel, each is one text frame: validate a device's against #/$defs/from_device, the cloud's against #/$defs/from_cloud. In a conversation's room, each is one text stream: validate the agent's against #/$defs/from_agent, the device's against #/$defs/from_device_in_room. Unknown message types and fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {"type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"},
@@ -113,6 +113,7 @@
       },
       "anyOf": [{"required": ["languages"]}, {"required": ["time_zone"]}, {"required": ["allowed_classes"]}]
     },
+    "leave": {"type": "object", "description": "The device leaves its home, before its factory reset: no field but its type and its number. Since 3.2."},
     "mcp": {
       "type": "object",
       "required": ["payload"],
@@ -234,6 +235,7 @@
         {"if": {"$ref": "#/$defs/is_ping"}, "then": {"$ref": "#/$defs/received"}},
         {"if": {"$ref": "#/$defs/is_bye"}, "then": {"$ref": "#/$defs/bye"}},
         {"if": {"$ref": "#/$defs/is_device_changed"}, "then": {"$ref": "#/$defs/device_changed"}},
+        {"if": {"$ref": "#/$defs/is_leave"}, "then": {"$ref": "#/$defs/leave"}},
         {"if": {"$ref": "#/$defs/is_mcp"}, "then": {"$ref": "#/$defs/mcp"}},
         {"if": {"$ref": "#/$defs/is_event"}, "then": {"$ref": "#/$defs/event"}},
         {"if": {"$ref": "#/$defs/is_conversation_request"}, "then": {"$ref": "#/$defs/conversation_request"}},
@@ -279,6 +281,7 @@
     "is_reconnect": {"type": "object", "required": ["type"], "properties": {"type": {"const": "reconnect"}}},
     "is_bye": {"type": "object", "required": ["type"], "properties": {"type": {"const": "bye"}}},
     "is_device_changed": {"type": "object", "required": ["type"], "properties": {"type": {"const": "device.changed"}}},
+    "is_leave": {"type": "object", "required": ["type"], "properties": {"type": {"const": "leave"}}},
     "is_mcp": {"type": "object", "required": ["type"], "properties": {"type": {"const": "mcp"}}},
     "is_event": {"type": "object", "required": ["type"], "properties": {"type": {"const": "event"}}},
     "is_conversation_request": {"type": "object", "required": ["type"], "properties": {"type": {"const": "conversation.request"}}},

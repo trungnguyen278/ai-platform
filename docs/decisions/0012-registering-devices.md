@@ -1,6 +1,6 @@
 # 0012 — Registering a device into a home: the cloud's challenge, signed by the device, relayed by the app
 
-- **Status:** Accepted. Its follow-up on a device's name in a home is settled by [ADR-0013](0013-setting-devices-up.md): the app asks for it at the end of set-up, pre-filled.
+- **Status:** Accepted. Its follow-up on a device's name in a home is settled by [ADR-0013](0013-setting-devices-up.md): the app asks for it at the end of set-up, pre-filled. A device also leaves its home by itself, before its factory reset, which removes it as decision 6 does ([ADR-0015](0015-factory-reset.md)).
 - **Date:** 2026-11-05
 
 ## Context

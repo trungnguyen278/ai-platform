@@ -19,9 +19,10 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0009](0009-people-in-a-home.md) | People in a home: what roles allow, how people join, how a home changes hands | Accepted | 2026-11-03 |
 | [0010](0010-patterns.md) | Patterns: regular expressions that every engine reads alike | Accepted | 2026-11-03 |
 | [0011](0011-refreshing-again.md) | Refreshing again, after an answer was lost | Accepted | 2026-11-04 |
-| [0012](0012-registering-devices.md) | Registering a device into a home: the cloud's challenge, signed by the device, relayed by the app | Accepted; its open question on names settled by 0013 | 2026-11-05 |
+| [0012](0012-registering-devices.md) | Registering a device into a home: the cloud's challenge, signed by the device, relayed by the app | Accepted; its open question on names settled by 0013; a device's own leaving added by 0015 | 2026-11-05 |
 | [0013](0013-setting-devices-up.md) | Setting a device up: the steps, its name in its home, and a new network | Accepted | 2026-11-12 |
 | [0014](0014-json-every-side-can-hold.md) | JSON that every side can hold: I-JSON, no NUL, at most 64 deep | Accepted | 2026-11-12 |
+| [0015](0015-factory-reset.md) | A device's factory reset: it leaves its home, then erases itself | Accepted | 2026-11-18 |
 
 ## Earlier decisions, in ai-robot
 

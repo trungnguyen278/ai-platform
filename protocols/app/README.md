@@ -23,7 +23,7 @@ Version **1.6**:
 - **1.1** adds homes: creating and changing them, the people in them and their roles, profiles, invitations, handing a home over, and deleting it. It also says what a refused ID token gets when it links an identity, what a name may hold, and what "other members" means when an account is deleted.
 - **1.0** signs people in, and lets them see and change their account, its identities and its sessions, and delete it.
 
-> **Implemented:** version 1.5 by the cloud, but for Apple and the page at `/join`: a home's devices, their registration ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)), whether they are `connected`, their kind, model and software ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)), and their names ([ai-cloud#28](https://github.com/trungnguyen278/ai-cloud/pull/28)). The app: all of 1.3 in its client; on its screens, signing in with the development provider, the session, the account, and homes with their people, profiles, invitations and joining. The devices of 1.4 and 1.5, not yet. Version 1.6, by neither yet.
+> **Implemented:** version 1.5 by the cloud, but for Apple and the page at `/join`: a home's devices, their registration ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)), whether they are `connected`, their kind, model and software ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)), and their names ([ai-cloud#28](https://github.com/trungnguyen278/ai-cloud/pull/28)). The app: all of 1.6 in its client ([ai-app#24](https://github.com/trungnguyen278/ai-app/pull/24), [ai-app#25](https://github.com/trungnguyen278/ai-app/pull/25)); on its screens, signing in with the development provider, the session, the account, homes with their people, profiles, invitations and joining, and a home's devices, which the owner and admins rename and remove ([ai-app#26](https://github.com/trungnguyen278/ai-app/pull/26)). Adding a device has no screen yet. Version 1.6, not yet by the cloud.
 
 ## The cloud's address
 
@@ -456,6 +456,7 @@ The cloud answers `201` with the device, now in the home:
 - **The cloud** ends the device's session with `bye` `revoked`, refuses its tokens and its assertions from then on, and forgets its key. It deletes what it keeps of the device. What belongs to the home and its people stays ([ADR-0005](../../docs/decisions/0005-homes.md), decision 4).
 - **The device** offers set-up (PROV-3): at once if it is connected, otherwise when the token endpoint next answers it `invalid_client`. Set up again, it is a new device to the cloud, in any home.
 - **Removing does not erase the device.** To give it to someone else, its owner resets it (PROV-4).
+- **A device also leaves by itself,** before its factory reset, when it reaches the cloud: the cloud removes it the same way, and the home's devices no longer list it ([the cloud link](../cloud/README.md#leave), from 3.2; [ADR-0015](../../docs/decisions/0015-factory-reset.md)). A device reset offline stays in the list, not connected, until someone removes it.
 - **Deleting the home,** or the account that takes it along, removes each of its devices the same way.
 
 ## Errors
