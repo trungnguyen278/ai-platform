@@ -6,9 +6,10 @@ The device's core AI runs in the cloud. The device listens, plays, shows and act
 - the session: what the device is and can do, the cloud's calls, and the device's events;
 - conversations: opened on the session, with their audio in a LiveKit room of their own.
 
-Version **3.1**:
+Version **3.2**:
 - It builds on:
   - [ADR-0006](../../docs/decisions/0006-two-channels.md): a control channel always on, and media only to talk;
+  - [ADR-0015](../../docs/decisions/0015-factory-reset.md): a device that leaves its home before its factory reset;
   - [ADR-0002](../../docs/decisions/0002-languages.md), [ADR-0003](../../docs/decisions/0003-compatibility.md) and [ADR-0004](../../docs/decisions/0004-conventions.md): languages, compatibility and conventions;
   - [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md): JSON that every side can hold;
   - ai-robot's [ADR-0008](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0008-cloud-link-messages.md) (typed JSON messages, and MCP for capabilities), [ADR-0009](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0009-cloud-link-webrtc.md) (WebRTC through LiveKit, now for conversations only), [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) (the device's identity) and [ADR-0012](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0012-end-of-speech.md) (the cloud ends the user's speech).
@@ -16,12 +17,13 @@ Version **3.1**:
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
-- **3.1** says what JSON a side holds, and ends a session with `bye` `invalid_message` on a frame that it cannot answer, such as a `ping` that it cannot read or a message without its number, and on a message too large, with WebSocket's 1009 ([Messages](#messages)). It also names the token endpoint's refusals, `429` among them. A 3.0 side takes the new reason as `error`, and any refusal but `invalid_client` as one to retry.
+- **3.2** lets a device leave its home before its factory reset, with `leave`: the cloud removes it as the app's removal does, then answers `bye` `left` ([`leave`](#leave)). A device sends `leave` only in a session of 3.2, and only a device that sent it gets `left`, so a 3.1 side meets no change.
+- 3.1 says what JSON a side holds, and ends a session with `bye` `invalid_message` on a frame that it cannot answer, such as a `ping` that it cannot read or a message without its number, and on a message too large, with WebSocket's 1009 ([Messages](#messages)). It also names the token endpoint's refusals, `429` among them. A 3.0 side takes the new reason as `error`, and any refusal but `invalid_client` as one to retry.
 - 3.0 splits the link in two: the session on a WebSocket to `ai-cloud`, always open, and a LiveKit room for each conversation, with its audio, its turns and its answers. A conversation lasts many turns, which the cloud takes. The link speaks of devices: `/device/token`, and the device's kind and model in its `hello`. Identifiers are UUIDs, instants RFC 3339 and durations seconds. Messages are numbered, so that a session survives a short loss of its connection. A version the cloud no longer speaks gets "update required".
 - 2.2 had the cloud end the user's speech; 2.1 added the token endpoint; 2.0 carried everything in a LiveKit room; 1.0 carried everything over one WebSocket ([ai-robot ADR-0007](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0007-cloud-link-transport.md), superseded).
 - No cloud ever spoke 1.x or 2.x, and no device left the workshop with them. The cloud speaks 3.0 only, and ADR-0003's periods start with it.
 
-> **Implemented:** version 3.0 by the robot ([ai-robot#36](https://github.com/trungnguyen278/ai-robot/pull/36), [ai-robot#38](https://github.com/trungnguyen278/ai-robot/pull/38)). By the cloud, the token endpoint ([ai-cloud#26](https://github.com/trungnguyen278/ai-cloud/pull/26)) and the session on the control channel, without resuming, conversations or events yet ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)). Version 3.1, by neither yet.
+> **Implemented:** version 3.0 by the robot ([ai-robot#36](https://github.com/trungnguyen278/ai-robot/pull/36), [ai-robot#38](https://github.com/trungnguyen278/ai-robot/pull/38)). By the cloud, the token endpoint ([ai-cloud#26](https://github.com/trungnguyen278/ai-cloud/pull/26)) and the session on the control channel, without resuming, conversations or events yet ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)). Versions 3.1 and 3.2, by neither yet.
 
 ## Two channels
 
@@ -99,7 +101,7 @@ The server answers with JSON ([`schema.json`](schema.json), `$defs/token_respons
   | 400 | `invalid_request` | The request or the assertion is malformed: a parameter missing or repeated, or no JWT |
   | 429 | `temporarily_unavailable` | The device asks too often. `Retry-After` says when to ask again ([RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), §4). |
 
-  - **After `invalid_client`,** the device offers set-up ([the set-up protocol](../setup/README.md), PROV-3).
+  - **After `invalid_client`,** the device offers set-up ([the set-up protocol](../setup/README.md), PROV-3). A device that is resetting erases itself instead ([`leave`](#leave)).
   - **After any other refusal,** the device tries again after the backoff ([Staying connected](#staying-connected)), and no sooner than `Retry-After` if the answer has one, in seconds or as a date ([RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), §10.2.3).
   - **Not `invalid_client` for a failing assertion.** RFC 7523 gives `invalid_client` to any client JWT that fails (§3.2). Here that code alone makes a device offer set-up, so a clock far off would unbind it. A failing assertion gets `invalid_grant` instead: RFC 6749's code for a grant that is invalid or expired (§5.2), and what RFC 7523 answers for the same checks when the JWT is the grant (§3.1). With `client_credentials`, the client's credentials are the grant (RFC 6749, §1.3.4).
   - **`temporarily_unavailable`** is the code that RFC 6749 gives a server too busy to answer (§4.1.2.1). The device acts on the status.
@@ -122,7 +124,7 @@ Authorization: Bearer eyJhbGciOiJFUzI1NiIs...
 
 - **The path carries the major version** ([ADR-0004](../../docs/decisions/0004-conventions.md), decision 5). The cloud can then run two majors side by side, and answer one it has retired ([Update required](#update-required)).
 - **One message per text frame:** a JSON object, in UTF-8.
-- **The token opens the connection,** and need not stay valid while the connection lasts. When the device's registration is revoked, the cloud ends its session with `bye` `revoked` (SEC-3).
+- **The token opens the connection,** and need not stay valid while the connection lasts. When the device's registration is revoked, the cloud ends its session with `bye` `revoked` (SEC-3); when the device leaves its home, with `bye` `left` ([`leave`](#leave)).
 - **Refusals.** The cloud may answer the handshake with an error instead. Its body is Problem Details ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)), for people and logs; the device acts on the status:
 
   | Status | Meaning | The device |
@@ -190,6 +192,7 @@ A session outlives a short loss of its connection (SES-5), as a session of Disco
 | `reconnect` | cloud | The cloud is about to close this connection: resume on a new one |
 | `bye` | both | Ends the session |
 | `device.changed` | device | The owner changed the device's languages, time zone or allowed classes |
+| `leave` | device | The device leaves its home, before its factory reset. Since 3.2. |
 | `mcp` | both | One MCP message: the cloud calls the device's capabilities |
 | `event` | device | Something happened that the cloud subscribed to |
 | `conversation.request` | device | Someone spoke to the device, which asks for a conversation |
@@ -263,6 +266,25 @@ When the owner changes the device's languages, time zone or allowed classes, the
 
 A change to the allowed classes also changes the capabilities' catalogue, which MCP announces ([Capabilities](#capabilities-mcp)).
 
+### `leave`
+
+Before its factory reset erases it, a device leaves its home, so that the app no longer lists it ([ADR-0015](../../docs/decisions/0015-factory-reset.md)). It sends `leave` in a session of 3.2 or later only, since an older cloud would ignore it (REL-5):
+
+```json
+{"type": "leave", "seq": 12}
+```
+
+- **A conversation** the device is in, it ends first, with `conversation.end` `user`.
+- **The cloud removes the device,** as [removing it in the app](../app/README.md#removing-a-device) does: it revokes its registration, refuses its tokens and its assertions from then on, forgets its key, and deletes what it keeps of the device. It ends any conversation the device still has. What belongs to the home and its people stays ([ADR-0005](../../docs/decisions/0005-homes.md), decision 4). The app no longer lists the device.
+- **Then it answers `bye` `left`,** once the device is out of its home and only then, and closes the connection. The device goes on with its reset. Should it not erase itself, it holds no registration any more, and offers set-up, as after `revoked` (PROV-3).
+- **A cloud that fails to remove the device** answers `error` `internal`, and the session goes on. The device may send `leave` again.
+- **An answer lost with the connection.** The device is out of its home once it gets `bye` `left`, or `bye` `revoked` from a removal in the app meanwhile, or `invalid_client` from the token endpoint. Until then, it asks again:
+  - a resumed session sends `leave` again if the cloud had not received it, as it does any message ([Resuming a session](#resuming-a-session)), and a new session sends a new `leave`;
+  - the first attempt to connect again does not wait for the backoff, but does wait for a `Retry-After` that the device was given. Those that follow keep to the backoff.
+  - `invalid_client` here ends the leave, and the device goes on with its reset instead of offering set-up. The cloud keeps no record of the devices that left: as OAuth answers the revocation of a token that is already invalid as a success ([RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), §2.2), the device takes the refusal as the outcome it asked for.
+- **A reset cut short,** by a power cut for one, goes on at the next start. The device keeps that it is resetting before it sends `leave`, so that a restart after the cloud removed it leads to the erase, and not to set-up.
+- **No outcome within `leave_timeout`,** from the moment the device asks, or no session of 3.2: the device erases itself anyway, as one that is offline does, and its screen first says to remove it in the app ([ADR-0015](../../docs/decisions/0015-factory-reset.md), decision 3).
+
 ### `bye`
 
 Before ending a session on purpose, a side sends `bye` (SES-7), then closes the connection:
@@ -276,6 +298,7 @@ Before ending a session on purpose, a side sends `bye` (SES-7), then closes the 
 | `stopping`, `restarting`, `updating` | device | The device stops, restarts or installs an update |
 | `replaced` | cloud | A newer connection of the device took over. The device keeps to that one. |
 | `revoked` | cloud | The device is no longer registered. It forgets its session and offers set-up (PROV-3). |
+| `left` | cloud | The device left its home, as its `leave` asked, and is no longer registered ([`leave`](#leave)). Since 3.2. |
 | `update_required` | cloud | The device needs an update ([Update required](#update-required)) |
 | `no_hello` | both | The other side's `hello` did not come in time |
 | `unsupported_protocol` | cloud | The `hello` named another major version than the path |
@@ -502,7 +525,7 @@ The device then shows that it needs an update; the app learns it from the cloud.
 
 How this version meets the [requirements](requirements.md#9-security):
 - **SEC-1:** TLS on all three connections: the token endpoint, the control channel and the room. No redirects. Plain HTTP and WebSocket only to the device itself, for development.
-- **SEC-2 to SEC-4:** each connection opens with a short-lived token, bought with an assertion that the device's key signs. Revoking a device refuses its assertions (`invalid_client`), and ends its session (`bye` `revoked`).
+- **SEC-2 to SEC-4:** each connection opens with a short-lived token, bought with an assertion that the device's key signs. Revoking a device refuses its assertions (`invalid_client`), and ends its session (`bye` `revoked`). A device also revokes itself, at its owner's request on the device, with `leave`, which only its own session can send (SEC-6).
 - **SEC-5:** neither side logs an assertion, an access token or a room's token.
 - **SEC-6:** the cloud ties a connection to the device its token names, and confines it to that device's data.
 - **SEC-7 to SEC-9:** the device checks every call against its catalogue, and enforces the safety classes itself. The cloud learns which classes are allowed, and never sets them. In the room, the device takes messages and audio from agents only.
@@ -511,6 +534,7 @@ How this version meets the [requirements](requirements.md#9-security):
 - **SEC-16:** the device only opens connections, and listens on none.
 - **PRIV-1:** audio leaves the device only in a conversation: one its user opens, or one the cloud opens with its owner's leave. The device ends conversations on its own (`idle`, `longest`, `muted`), and only agents may hear its microphone.
 - **PRIV-5:** `ping` and `pong` carry numbers only.
+- **PRIV-6, PROV-4:** a device that its owner resets leaves its home first, when it reaches the cloud, so that its binding goes with its data ([`leave`](#leave)). It erases itself even when it cannot.
 
 ## Settings
 
@@ -520,6 +544,7 @@ The names in `code` in this document are settings, of the device or of the cloud
 |---|---|---|---|
 | `reconnect_first`, `reconnect_max` | device | 1 s, 60 s | The backoff |
 | `hello_timeout` | both | 5 s | How long a side waits for the other's `hello` |
+| `leave_timeout` | device | 15 s, room for a token, a connection with its `hello`, and the removal | How long the device waits for the outcome of its `leave` |
 | `replay` | both | 1,000 messages | How many sent messages a side keeps, to resume |
 | `rate`, `burst`, `backlog` | device | 50 a second, 100, 500 | What the device takes from the cloud |
 | `start_timeout` | device | 5 s | How long the device waits for `conversation.start` |
