@@ -1,0 +1,9 @@
+{
+  "description": "A device's first message is not its hello, from version 3.3 (the README's hello). The cloud ends the session at once, without waiting for hello_timeout.",
+  "messages": [
+    {"note": "The connection is open, and the device's first message is a device.changed numbered 1. The cloud can read it and could answer it, but no session holds it yet: no version to read it by, and no numbers to go on from."},
+    {"from": "device", "message": {"type": "device.changed", "seq": 1, "time_zone": "Asia/Ho_Chi_Minh"}},
+    {"from": "cloud", "message": {"type": "bye", "reason": "no_hello", "message": "the first message was not a hello"}},
+    {"note": "The cloud closes the connection. The device connects again after the backoff, for a new session, and says its hello first."}
+  ]
+}

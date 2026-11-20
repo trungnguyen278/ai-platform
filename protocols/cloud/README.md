@@ -6,7 +6,7 @@ The device's core AI runs in the cloud. The device listens, plays, shows and act
 - the session: what the device is and can do, the cloud's calls, and the device's events;
 - conversations: opened on the session, with their audio in a LiveKit room of their own.
 
-Version **3.2**:
+Version **3.3**:
 - It builds on:
   - [ADR-0006](../../docs/decisions/0006-two-channels.md): a control channel always on, and media only to talk;
   - [ADR-0015](../../docs/decisions/0015-factory-reset.md): a device that leaves its home before its factory reset;
@@ -17,13 +17,14 @@ Version **3.2**:
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
-- **3.2** lets a device leave its home before its factory reset, with `leave`: the cloud removes it as the app's removal does, then answers `bye` `left` ([`leave`](#leave)). A device sends `leave` only in a session of 3.2, and only a device that sent it gets `left`, so a 3.1 side meets no change.
+- **3.3** says what a first message that is not a `hello` gets: the session ends at once, with `bye` `no_hello`, as the cloud and the robot already do ([`hello`](#hello)). The rule applies before the hellos name a version, so a side that follows 3.3 keeps it whatever the other side's version. A side of 3.2 may still wait `hello_timeout`, and a side that sends its `hello` first meets no change.
+- 3.2 lets a device leave its home before its factory reset, with `leave`: the cloud removes it as the app's removal does, then answers `bye` `left` ([`leave`](#leave)). A device sends `leave` only in a session of 3.2, and only a device that sent it gets `left`, so a 3.1 side meets no change.
 - 3.1 says what JSON a side holds, and ends a session with `bye` `invalid_message` on a frame that it cannot answer, such as a `ping` that it cannot read or a message without its number, and on a message too large, with WebSocket's 1009 ([Messages](#messages)). It also names the token endpoint's refusals, `429` among them. A 3.0 side takes the new reason as `error`, and any refusal but `invalid_client` as one to retry.
 - 3.0 splits the link in two: the session on a WebSocket to `ai-cloud`, always open, and a LiveKit room for each conversation, with its audio, its turns and its answers. A conversation lasts many turns, which the cloud takes. The link speaks of devices: `/device/token`, and the device's kind and model in its `hello`. Identifiers are UUIDs, instants RFC 3339 and durations seconds. Messages are numbered, so that a session survives a short loss of its connection. A version the cloud no longer speaks gets "update required".
 - 2.2 had the cloud end the user's speech; 2.1 added the token endpoint; 2.0 carried everything in a LiveKit room; 1.0 carried everything over one WebSocket ([ai-robot ADR-0007](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0007-cloud-link-transport.md), superseded).
 - No cloud ever spoke 1.x or 2.x, and no device left the workshop with them. The cloud speaks 3.0 only, and ADR-0003's periods start with it.
 
-> **Implemented:** version 3.0 by the robot ([ai-robot#36](https://github.com/trungnguyen278/ai-robot/pull/36), [ai-robot#38](https://github.com/trungnguyen278/ai-robot/pull/38)). By the cloud, the token endpoint ([ai-cloud#26](https://github.com/trungnguyen278/ai-cloud/pull/26)) and the session on the control channel, without resuming, conversations or events yet ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)). Versions 3.1 and 3.2, by neither yet.
+> **Implemented:** version 3.2 by the robot: 3.0 ([ai-robot#36](https://github.com/trungnguyen278/ai-robot/pull/36), [ai-robot#38](https://github.com/trungnguyen278/ai-robot/pull/38)), 3.1 ([ai-robot#50](https://github.com/trungnguyen278/ai-robot/pull/50)), and `leave`, with its factory reset ([ai-robot#51](https://github.com/trungnguyen278/ai-robot/pull/51)). Version 3.2 by the cloud, but for resuming a session, conversations and events: the token endpoint ([ai-cloud#26](https://github.com/trungnguyen278/ai-cloud/pull/26)), the session on the control channel ([ai-cloud#27](https://github.com/trungnguyen278/ai-cloud/pull/27)), 3.1 ([ai-cloud#29](https://github.com/trungnguyen278/ai-cloud/pull/29)) and `leave` ([ai-cloud#30](https://github.com/trungnguyen278/ai-cloud/pull/30)). Both already end the session on a first message that is not a `hello`, as 3.3 says, and still name 3.2 in their own.
 
 ## Two channels
 
@@ -172,7 +173,8 @@ A session outlives a short loss of its connection (SES-5), as a session of Disco
   - `reply_to`, in a message that answers another: that message's `seq`.
 - **JSON that every side can hold** ([ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md)). A message is I-JSON ([RFC 7493](https://www.rfc-editor.org/rfc/rfc7493)): no surrogate or noncharacter code point, no number past a double, no name twice in an object. No name or string holds U+0000, and arrays and objects nest at most 64 deep, the message's own object included.
   - A side refuses a text that holds a lone surrogate or a U+0000, or that nests deeper than it reads, at least 64, as a frame that it cannot answer ([Validation](#messages)), however far its reader got. It may refuse the rest of what I-JSON forbids, the same way.
-- **Sizes.** A message holds up to 1 MiB of UTF-8. A side that receives a larger one closes the connection with WebSocket's 1009, "message too big" ([RFC 6455](https://www.rfc-editor.org/rfc/rfc6455), §7.4.1), as the libraries do once a limit set to 1 MiB is reached: uvicorn's (`ws_max_size`) and aiohttp's (`max_msg_size`). No `bye` can follow on that connection.
+- **Sizes.** A message holds up to 1 MiB of UTF-8, and a side receives every message up to that size, one of exactly 1 MiB included. A side that receives a larger one closes the connection with WebSocket's 1009, "message too big" ([RFC 6455](https://www.rfc-editor.org/rfc/rfc6455), §7.4.1). No `bye` can follow on that connection.
+  - The libraries close it at a limit of their own, which they do not count alike (read 2026-11-20). uvicorn's `ws_max_size` refuses only a larger message (`frames.py` of websockets 17.3, and uvicorn 0.54's `wsproto_impl.py`), so the cloud sets it to 1 MiB. aiohttp's `max_msg_size` refuses a message of that very size already, without compression (aiohttp 3.14.5, `_websocket/reader_py.py`), so a device on aiohttp sets it to 1 MiB + 1.
   - Both sides then end the session, as `bye` `invalid_message` would: the sender would send the same message again on a resumed one. The device connects again after the backoff, for a new session.
   - MQTT 5 also ends the connection on a packet larger than the receiver takes ([MQTT 5.0](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html), §3.1.2.11.4).
 - **Order.** Messages arrive in the order sent, and each side handles them in that order.
@@ -252,6 +254,8 @@ The cloud answers:
 | `events` | The events the cloud subscribes to. The device sends only those, and only declared ones. |
 
 - **No answer.** Each side waits `hello_timeout` for the other's `hello`. Past it, it sends `bye` `no_hello` and closes the connection.
+- **Another message first.** Each side's first message is its `hello`, or a `bye` that ends the session before it. A first message of another type that a side can answer ([Validation](#messages)) ends the session at once with `bye` `no_hello`, without waiting for `hello_timeout`, and gets no `error`, even when it fails `schema.json`: no session holds it yet, with a version to read it by and numbers to go on from. Since 3.3.
+  - MQTT 5 does the same: a client's first packet must be CONNECT, and a server closes the connection on a protocol error ([MQTT 5.0](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html), §3.1 and §4.13.1). The GraphQL over WebSocket protocol closes at once on an operation before its connection is acknowledged ([`PROTOCOL.md`](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md), `4401`). Both read 2026-11-20.
 - **A `hello` that a side cannot read,** or that fails `schema.json`, gets `bye` `invalid_message`, as any frame that it cannot answer does ([Validation](#messages)).
 - **Another major version** in a `hello` than in the path is refused with `bye` `unsupported_protocol`.
 - **A conversation the cloud no longer knows**, named by a device's `hello`, is ended by the cloud with `conversation.end` `lost`.
@@ -283,7 +287,7 @@ Before its factory reset erases it, a device leaves its home, so that the app no
   - the first attempt to connect again does not wait for the backoff, but does wait for a `Retry-After` that the device was given. Those that follow keep to the backoff.
   - `invalid_client` here ends the leave, and the device goes on with its reset instead of offering set-up. The cloud keeps no record of the devices that left: as OAuth answers the revocation of a token that is already invalid as a success ([RFC 7009](https://www.rfc-editor.org/rfc/rfc7009), §2.2), the device takes the refusal as the outcome it asked for.
 - **A reset cut short,** by a power cut for one, goes on at the next start. The device keeps that it is resetting before it sends `leave`, so that a restart after the cloud removed it leads to the erase, and not to set-up.
-- **No outcome within `leave_timeout`,** from the moment the device asks, or no session of 3.2: the device erases itself anyway, as one that is offline does, and its screen first says to remove it in the app ([ADR-0015](../../docs/decisions/0015-factory-reset.md), decision 3).
+- **No outcome within `leave_timeout`,** from the moment the device asks, or no session of 3.2 or later: the device erases itself anyway, as one that is offline does, and its screen first says to remove it in the app ([ADR-0015](../../docs/decisions/0015-factory-reset.md), decision 3).
 
 ### `bye`
 
@@ -300,7 +304,7 @@ Before ending a session on purpose, a side sends `bye` (SES-7), then closes the 
 | `revoked` | cloud | The device is no longer registered. It forgets its session and offers set-up (PROV-3). |
 | `left` | cloud | The device left its home, as its `leave` asked, and is no longer registered ([`leave`](#leave)). Since 3.2. |
 | `update_required` | cloud | The device needs an update ([Update required](#update-required)) |
-| `no_hello` | both | The other side's `hello` did not come in time |
+| `no_hello` | both | The other side's `hello` did not come in time, or another message came before it ([`hello`](#hello)). Since 3.3 for the second. |
 | `unsupported_protocol` | cloud | The `hello` named another major version than the path |
 | `resume_failed` | device | The device cannot send again what the cloud asked for |
 | `out_of_sequence` | both | A message skipped a number |
