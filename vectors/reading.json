@@ -1,0 +1,471 @@
+{
+  "description": "Texts that every side's JSON reader must take or refuse as ADR-0014 says, each in at most `seconds`. README.md says how to run them.",
+  "seconds": 5,
+  "vectors": [
+    {
+      "id": "object",
+      "comment": "A plain object.",
+      "text": "{\"type\": \"ping\", \"seq\": 1}",
+      "result": "read"
+    },
+    {
+      "id": "surrogate-pair-escaped",
+      "comment": "A surrogate pair, escaped: one code point, U+1F600.",
+      "text": "[\"\\ud83d\\ude00\"]",
+      "result": "read"
+    },
+    {
+      "id": "surrogate-pair",
+      "comment": "U+1F600 as UTF-8, unescaped.",
+      "text": "[\"😀\"]",
+      "result": "read"
+    },
+    {
+      "id": "depth-64",
+      "comment": "Arrays 64 deep, as deep as every side reads.",
+      "text": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "result": "read"
+    },
+    {
+      "id": "depth-64-objects",
+      "comment": "Objects 64 deep.",
+      "text": "{\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}",
+      "result": "read"
+    },
+    {
+      "id": "brackets-in-a-string",
+      "comment": "Brackets in a string do not nest: this nests 1 deep.",
+      "text": "[\"[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"]",
+      "result": "read"
+    },
+    {
+      "id": "escaped-quote-then-brackets",
+      "comment": "An escaped quote does not end a string, and an escaped backslash before a quote does: this nests 1 deep.",
+      "text": "[\"\\\"[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\", \"\\\\\"]",
+      "result": "read"
+    },
+    {
+      "id": "closing-brackets-in-a-string",
+      "comment": "Closing brackets in a string do not lower the depth.",
+      "text": "[\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\", [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "result": "read"
+    },
+    {
+      "id": "largest-doubles",
+      "comment": "The largest and the smallest doubles.",
+      "text": "[1.7976931348623157e308, -1.7976931348623157e308, 5e-324]",
+      "result": "read"
+    },
+    {
+      "id": "largest-safe-integer",
+      "comment": "2^53 - 1.",
+      "text": "[9007199254740991, -9007199254740991]",
+      "result": "read"
+    },
+    {
+      "id": "past-double-exponent",
+      "comment": "1e400.",
+      "text": "[1e400]",
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "past-double-negative",
+      "comment": "-1e400.",
+      "text": "[-1e400]",
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "past-double-capital",
+      "comment": "1E+400.",
+      "text": "[1E+400]",
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "past-double-fraction",
+      "comment": "A fraction past a double.",
+      "text": "[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.5]",
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "past-double-integer",
+      "comment": "1e400, written as an integer.",
+      "text": "[10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000]",
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "past-double-negative-integer",
+      "comment": "-1e400, written as an integer.",
+      "text": "[-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000]",
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "past-double-integer-1-mib",
+      "comment": "An integer of 1 MiB of digits.",
+      "parts": [
+        {"text": "[1"},
+        {"text": "0", "times": 1048573},
+        {"text": "]"}
+      ],
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "past-double-repeated-name",
+      "comment": "A number past a double, in the value that a repeated name drops.",
+      "text": "{\"a\": 1e400, \"a\": 1}",
+      "result": "either",
+      "group": "past-double"
+    },
+    {
+      "id": "integer-past-2-53",
+      "comment": "2^53 + 1, which a double cannot hold exactly.",
+      "text": "[9007199254740993]",
+      "result": "either"
+    },
+    {
+      "id": "underflow",
+      "comment": "1e-400, smaller than any double but zero.",
+      "text": "[1e-400]",
+      "result": "either"
+    },
+    {
+      "id": "nan",
+      "comment": "NaN, which JSON lacks.",
+      "text": "[NaN]",
+      "result": "refused"
+    },
+    {
+      "id": "infinity",
+      "comment": "Infinity, which JSON lacks.",
+      "text": "[Infinity]",
+      "result": "refused"
+    },
+    {
+      "id": "negative-infinity",
+      "comment": "-Infinity, which JSON lacks.",
+      "text": "[-Infinity]",
+      "result": "refused"
+    },
+    {
+      "id": "trailing-comma",
+      "comment": "A comma after the last item.",
+      "text": "[1,]",
+      "result": "refused"
+    },
+    {
+      "id": "empty",
+      "comment": "No text at all.",
+      "text": "",
+      "result": "refused"
+    },
+    {
+      "id": "nul-unescaped",
+      "comment": "U+0000 unescaped in a string: a control character, not JSON.",
+      "hex": "5b2200225d",
+      "result": "refused"
+    },
+    {
+      "id": "not-utf-8",
+      "comment": "A byte that UTF-8 never uses.",
+      "hex": "5b22ff225d",
+      "result": "refused"
+    },
+    {
+      "id": "overlong-utf-8",
+      "comment": "'/' in two bytes, which UTF-8 forbids.",
+      "hex": "5b22c0af225d",
+      "result": "refused"
+    },
+    {
+      "id": "surrogate-bytes",
+      "comment": "A lone surrogate encoded as if it were a code point.",
+      "hex": "5b22eda080225d",
+      "result": "refused"
+    },
+    {
+      "id": "surrogate-pair-bytes",
+      "comment": "U+1F600 as CESU-8: a pair of surrogates, each encoded.",
+      "hex": "5b22eda0bdedb880225d",
+      "result": "refused"
+    },
+    {
+      "id": "byte-order-mark",
+      "comment": "UTF-8's byte order mark first, which RFC 8259 lets a reader ignore (section 8.1).",
+      "hex": "efbbbf5b315d",
+      "result": "either"
+    },
+    {
+      "id": "byte-order-mark-then-trailing-comma",
+      "comment": "UTF-8's byte order mark, then a text that is not JSON: refused, whether the reader ignores the mark or not.",
+      "hex": "efbbbf5b312c5d",
+      "result": "refused"
+    },
+    {
+      "id": "nul-escaped",
+      "comment": "U+0000, escaped, in a string.",
+      "text": "[\"\\u0000\"]",
+      "result": "refused"
+    },
+    {
+      "id": "nul-in-a-name",
+      "comment": "U+0000, escaped, in a name.",
+      "text": "{\"\\u0000\": 1}",
+      "result": "refused"
+    },
+    {
+      "id": "nul-at-depth-64",
+      "comment": "U+0000 at the deepest that every side reads.",
+      "text": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"\\u0000\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "result": "refused"
+    },
+    {
+      "id": "lone-high-surrogate",
+      "comment": "A high surrogate alone.",
+      "text": "[\"\\ud800\"]",
+      "result": "refused"
+    },
+    {
+      "id": "lone-low-surrogate",
+      "comment": "A low surrogate alone.",
+      "text": "[\"\\udc00\"]",
+      "result": "refused"
+    },
+    {
+      "id": "reversed-surrogates",
+      "comment": "A low surrogate, then a high one.",
+      "text": "[\"\\udc00\\ud800\"]",
+      "result": "refused"
+    },
+    {
+      "id": "high-surrogate-then-letter",
+      "comment": "A high surrogate before a letter.",
+      "text": "[\"\\ud800a\"]",
+      "result": "refused"
+    },
+    {
+      "id": "lone-surrogate-in-a-name",
+      "comment": "A lone surrogate in a name.",
+      "text": "{\"\\udead\": 1}",
+      "result": "refused"
+    },
+    {
+      "id": "noncharacter-fdd0",
+      "comment": "U+FDD0.",
+      "text": "[\"\\ufdd0\"]",
+      "result": "either"
+    },
+    {
+      "id": "noncharacter-ffff",
+      "comment": "U+FFFF.",
+      "text": "[\"\\uffff\"]",
+      "result": "either"
+    },
+    {
+      "id": "noncharacter-10ffff",
+      "comment": "U+10FFFF, as a pair.",
+      "text": "[\"\\udbff\\udfff\"]",
+      "result": "either"
+    },
+    {
+      "id": "repeated-name",
+      "comment": "A name twice in one object.",
+      "text": "{\"a\": 1, \"a\": 1}",
+      "result": "either"
+    },
+    {
+      "id": "repeated-name-hides-nul",
+      "comment": "A U+0000 in the value that a repeated name drops.",
+      "text": "{\"a\": \"\\u0000\", \"a\": \"x\"}",
+      "result": "refused"
+    },
+    {
+      "id": "repeated-name-hides-surrogate",
+      "comment": "A lone surrogate in the value that a repeated name drops.",
+      "text": "{\"a\": \"\\ud800\", \"a\": \"x\"}",
+      "result": "refused"
+    },
+    {
+      "id": "repeated-name-hides-a-name",
+      "comment": "A U+0000 in a name, in a value that a repeated name drops.",
+      "text": "{\"a\": {\"\\u0000\": 1}, \"a\": 1}",
+      "result": "refused"
+    },
+    {
+      "id": "repeated-name-hides-depth",
+      "comment": "Nesting 101 deep, in a value that a repeated name drops.",
+      "text": "{\"a\": [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]], \"a\": 1}",
+      "result": "refused",
+      "depth": 101
+    },
+    {
+      "id": "depth-65",
+      "comment": "Arrays 65 deep.",
+      "text": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "result": "refused",
+      "depth": 65
+    },
+    {
+      "id": "depth-65-objects",
+      "comment": "Objects 65 deep.",
+      "text": "{\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {\"a\": {}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}",
+      "result": "refused",
+      "depth": 65
+    },
+    {
+      "id": "depth-65-after-a-string",
+      "comment": "Closing brackets in a string, then arrays 65 deep.",
+      "text": "[\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]\", [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "result": "refused",
+      "depth": 65
+    },
+    {
+      "id": "depth-65-after-an-escaped-quote",
+      "comment": "An escaped quote, then a string's end, then arrays 65 deep.",
+      "text": "[\"\\\"\", [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "result": "refused",
+      "depth": 65
+    },
+    {
+      "id": "depth-1-mib",
+      "comment": "Arrays nested 524,288 deep, in 1 MiB.",
+      "parts": [
+        {"text": "[", "times": 524288},
+        {"text": "]", "times": 524288}
+      ],
+      "result": "refused",
+      "depth": 524288
+    },
+    {
+      "id": "unterminated-1-mib-of-brackets",
+      "comment": "1 MiB of opening brackets.",
+      "parts": [
+        {"text": "[", "times": 1048576}
+      ],
+      "result": "refused",
+      "depth": 1048576
+    },
+    {
+      "id": "unterminated-escaped-quotes",
+      "comment": "A string of escaped quotes that never ends.",
+      "parts": [
+        {"text": "[\""},
+        {"text": "\\\"", "times": 524287}
+      ],
+      "result": "refused"
+    },
+    {
+      "id": "escaped-quotes",
+      "comment": "A string of escaped quotes.",
+      "parts": [
+        {"text": "[\""},
+        {"text": "\\\"", "times": 524286},
+        {"text": "\"]"}
+      ],
+      "result": "read"
+    },
+    {
+      "id": "unterminated-escaped-backslashes",
+      "comment": "A string of escaped backslashes that never ends.",
+      "parts": [
+        {"text": "[\""},
+        {"text": "\\\\", "times": 524287}
+      ],
+      "result": "refused"
+    },
+    {
+      "id": "unterminated-escaped-quotes-and-brackets",
+      "comment": "A string of escaped quotes and brackets that never ends.",
+      "parts": [
+        {"text": "[\""},
+        {"text": "\\\"[", "times": 349524}
+      ],
+      "result": "refused"
+    },
+    {
+      "id": "long-string",
+      "comment": "One string of 1 MiB.",
+      "parts": [
+        {"text": "[\""},
+        {"text": "a", "times": 1048572},
+        {"text": "\"]"}
+      ],
+      "result": "read"
+    },
+    {
+      "id": "many-arrays",
+      "comment": "Empty arrays, as many as fit.",
+      "parts": [
+        {"text": "["},
+        {"text": "[],", "times": 349524},
+        {"text": "[]]"}
+      ],
+      "result": "read"
+    },
+    {
+      "id": "many-objects",
+      "comment": "Empty objects, as many as fit.",
+      "parts": [
+        {"text": "["},
+        {"text": "{},", "times": 349524},
+        {"text": "{}]"}
+      ],
+      "result": "read"
+    },
+    {
+      "id": "many-names",
+      "comment": "One object with as many names as fit, each its own.",
+      "parts": [
+        {"text": "{"},
+        {"before": "\"", "after": "\":0,", "times": 105425},
+        {"text": "\"x\":0}"}
+      ],
+      "result": "read"
+    },
+    {
+      "id": "many-repeated-names",
+      "comment": "One name, as many times as fit.",
+      "parts": [
+        {"text": "{"},
+        {"text": "\"a\":0,", "times": 174761},
+        {"text": "\"a\":0}"}
+      ],
+      "result": "either"
+    },
+    {
+      "id": "many-nuls",
+      "comment": "Escaped U+0000s, as many as fit.",
+      "parts": [
+        {"text": "[\""},
+        {"text": "\\u0000", "times": 174762},
+        {"text": "\"]"}
+      ],
+      "result": "refused"
+    },
+    {
+      "id": "many-surrogate-pairs",
+      "comment": "Escaped surrogate pairs, as many as fit.",
+      "parts": [
+        {"text": "[\""},
+        {"text": "\\ud83d\\ude00", "times": 87381},
+        {"text": "\"]"}
+      ],
+      "result": "read"
+    },
+    {
+      "id": "many-numbers",
+      "comment": "Numbers, as many as fit.",
+      "parts": [
+        {"text": "["},
+        {"text": "1.5e3,", "times": 174761},
+        {"text": "1.5e3]"}
+      ],
+      "result": "read"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Test vectors: texts and messages with the answer that every side must give (ADR-0014)",
+  "description": "reading is the format of reading.json, and validating that of validating.json (README.md)",
+  "$defs": {
+    "reading": {
+      "type": "object",
+      "required": ["description", "seconds", "vectors"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "seconds": {"$ref": "#/$defs/seconds"},
+        "vectors": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/reading_vector"}}
+      }
+    },
+    "validating": {
+      "type": "object",
+      "required": ["description", "seconds", "vectors"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "seconds": {"$ref": "#/$defs/seconds"},
+        "vectors": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/validating_vector"}}
+      }
+    },
+    "seconds": {
+      "description": "The longest that a side may take over one vector",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "reading_vector": {
+      "description": "A text, and how a side that reads 64 deep answers it: read, refused, or either, where ADR-0014 lets a receiver refuse it",
+      "type": "object",
+      "required": ["id", "comment", "result"],
+      "oneOf": [{"required": ["text"]}, {"required": ["hex"]}, {"required": ["parts"]}],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "comment": {"$ref": "#/$defs/comment"},
+        "text": {"$ref": "#/$defs/text"},
+        "hex": {"$ref": "#/$defs/hex"},
+        "parts": {"$ref": "#/$defs/parts"},
+        "result": {"enum": ["read", "refused", "either"]},
+        "group": {
+          "description": "Vectors that a side must answer alike, whichever answer it gives",
+          "$ref": "#/$defs/id"
+        },
+        "depth": {
+          "description": "How deep the text nests, when deeper than 64: a side that reads that deep may answer either",
+          "type": "integer"
+        }
+      },
+      "dependentSchemas": {
+        "group": {"properties": {"result": {"const": "either"}}}
+      }
+    },
+    "validating_vector": {
+      "description": "A message, which every side reads, and whether it is valid against a definition of a protocol's schema",
+      "type": "object",
+      "required": ["id", "comment", "protocol", "definition", "result"],
+      "oneOf": [{"required": ["text"]}, {"required": ["parts"]}],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "comment": {"$ref": "#/$defs/comment"},
+        "protocol": {
+          "description": "The protocol's folder in protocols/",
+          "type": "string",
+          "pattern": "^[a-z]+$"
+        },
+        "definition": {
+          "description": "A definition of the protocol's schema.json, in $defs",
+          "type": "string",
+          "pattern": "^[a-z_]+$"
+        },
+        "text": {"$ref": "#/$defs/text"},
+        "parts": {"$ref": "#/$defs/parts"},
+        "result": {"enum": ["valid", "invalid"]}
+      }
+    },
+    "id": {
+      "description": "Unique among the vectors of both files",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "comment": {"type": "string", "minLength": 1},
+    "text": {
+      "description": "The vector's text, in UTF-8",
+      "type": "string"
+    },
+    "hex": {
+      "description": "The vector's bytes, in hexadecimal: for what UTF-8 cannot spell, or a raw U+0000, which no file of this repository may hold",
+      "type": "string",
+      "pattern": "^([0-9a-f]{2})*$"
+    },
+    "parts": {
+      "description": "The vector's text, in UTF-8, made of its parts in order: for a text too long to write out",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "description": "text, times times over",
+            "type": "object",
+            "required": ["text"],
+            "additionalProperties": false,
+            "properties": {
+              "text": {"type": "string", "minLength": 1},
+              "times": {"$ref": "#/$defs/times"}
+            }
+          },
+          {
+            "description": "For each n from 0 to times - 1, before, then n in decimal digits, then after: items that differ",
+            "type": "object",
+            "required": ["before", "after", "times"],
+            "additionalProperties": false,
+            "properties": {
+              "before": {"type": "string"},
+              "after": {"type": "string"},
+              "times": {"$ref": "#/$defs/times"}
+            }
+          }
+        ]
+      }
+    },
+    "times": {"type": "integer", "minimum": 1}
+  }
+}

@@ -25,8 +25,9 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 
 - **Together:** the specification, the schema, the examples and the version notes say the same thing.
 - **Versions:** the bump matches the change. Could an old side still talk to a new one, as the version promises? A minor version that makes a field required, narrows a range or changes a meaning is a major one. The README's version, its first version note and the schema's title name the same one, which `tools/check.py` checks: the check takes the version from the title alone, to find the tag before it.
-- **Bounds:** every new string has a length, every number a range, every list a size, so that each side can refuse what is too big (SEC-14, SEC-15). Numbers are finite: JSON has no NaN.
+- **Bounds:** every new string has a length, every number a range, every list a size, so that each side can refuse what is too big (SEC-14, SEC-15). Numbers are finite: JSON has no NaN. An array of `uniqueItems` has its `maxItems` and `items` beside it, in the same schema: jsonschema and Ajv compare objects each with every other, and the sides compare only an array that those two allow.
 - **Unknowns:** what does each side do with a message, a field or a value it does not know? The specification says.
+- **Each listed message dispatched:** every type in a README's table of messages has a definition of its own in its sender's `from_*`, which the check finds through an `allOf` entry whose `if` takes `{"type": …}`. A table of messages has a `From` column and a `Type` or `Message` one, one type and its senders to a row, and its section names the `$defs/from_…` that it is validated against when that is not `from_<sender>`.
 - **Dispatch:** in `from_app` and `from_cloud`, a new body must not set off another definition's `if`, and the catch-all must leave it out: a device's `kind` would have read it as a member. Two requests whose bodies have one shape, such as a home's and a device's new `name`, cannot be told apart: one definition reads both, and it must agree with each on every field, as `from_app`'s description says. Plant good and broken bodies through the dispatch, and against their own definition, which a side may use alone.
 - **Optional for the previous tag:** the check validates the previous minor version's tagged examples against the new schema, so a field that a minor version adds stays optional in the schema. The specification says from which version a side sends it, and what the other does when it is absent.
 - **Interruptions:** for a sequence across sides, such as set-up, walk each point where it can stop, and say what starting again finds there, and what the app then does.
@@ -54,6 +55,10 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 ### The check
 
 - **Patterns as ECMA-262 reads them:** its `$` is the very end, where Python's also matches before a last newline. `tools/check.py` validates against `with_ecma_ends(schema)`, a copy of the schema that reaches every place jsonschema reads a regular expression, the keys of `patternProperties` included. A new validation in the check goes through it, and plants a value ending in a newline that it must refuse. ai-cloud and ai-robot read only `pattern` so: a protocol that comes to use `patternProperties` needs their reading of its keys too.
+
+- **A check that is itself quadratic:** the check reads 1 MiB vectors. `list.count` inside a loop, or a regular expression tried again at each place of a string that never closes, takes hours on them. Count with `Counter`, read each string once, as `NESTING` does, and see that the check still takes seconds.
+- **Every error collected before one is chosen:** jsonschema's `best_match(iter_errors(…))` builds an error for each wrong item before it picks one, 3 to 5 s for a 1 MiB array in ai-cloud and ai-robot (2026-11-20), where `is_valid` and Ajv stop at the first. The check validates the vectors with `is_valid`.
+- **A vector for each bug class:** a bug that a side meets in reading or validating JSON gets a vector in `vectors/`, in the pull request that finds it, so that every side runs it.
 
 ### A decision
 
