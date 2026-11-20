@@ -2,7 +2,7 @@
 
 How the owner's app sets up a device: its Wi-Fi network, its first settings, and its registration into a home on `ai-cloud`. A robot is the first kind of device ([ADR-0001](../../docs/decisions/0001-repositories.md), decision 5).
 - On the robot (ai-robot's `software/`), it is the `setup` module, with its `setup_link` and `network` ports.
-- In the app, [ai-app](https://github.com/trungnguyen278/ai-app), it is a client of the device's Bluetooth service, without its screens yet.
+- In the app, [ai-app](https://github.com/trungnguyen278/ai-app), it is a client of the device's Bluetooth service, and the screens that add a device to a home.
 
 Version **2.2**:
 - It follows ai-robot's [ADR-0015](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0015-set-up.md), accepted, and registers the key of [ADR-0010](https://github.com/trungnguyen278/ai-robot/blob/main/docs/decisions/0010-device-identity.md) into a home ([ADR-0005](../../docs/decisions/0005-homes.md)).
@@ -19,7 +19,7 @@ Version **2.2**:
 - 2.0 speaks of devices: `device` in `info`, `device-registration+jwt`, and the labels `ai-platform/setup/2`. The challenge registers the device into a home ([ADR-0005](../../docs/decisions/0005-homes.md)). `configure` gives the device its first languages and time zone ([ADR-0002](../../docs/decisions/0002-languages.md)). Messages are numbered, `seq`, as in the cloud link 3.0 ([ADR-0004](../../docs/decisions/0004-conventions.md)).
 - 1.0 was the robot's, as ai-robot's ADR-0015 decided.
 
-> **Implemented:** version 2.2 by the robot, which moved its pin to it ([ai-robot#47](https://github.com/trungnguyen278/ai-robot/pull/47)) after speaking 2.1 ([ai-robot#44](https://github.com/trungnguyen278/ai-robot/pull/44)) and indicating `busy` to its app only, through `AcquireNotify` ([ai-robot#45](https://github.com/trungnguyen278/ai-robot/pull/45)). By the app's client too ([ai-app#24](https://github.com/trungnguyen278/ai-app/pull/24)), against a simulated device: the app has no screen for set-up, nor its radio, yet. The cloud's side, the registration, through the app API 1.4 ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)).
+> **Implemented:** version 2.2 by the robot, which moved its pin to it ([ai-robot#47](https://github.com/trungnguyen278/ai-robot/pull/47)) after speaking 2.1 ([ai-robot#44](https://github.com/trungnguyen278/ai-robot/pull/44)) and indicating `busy` to its app only, through `AcquireNotify` ([ai-robot#45](https://github.com/trungnguyen278/ai-robot/pull/45)). By the app too, against simulated devices: its client ([ai-app#24](https://github.com/trungnguyen278/ai-app/pull/24)), and its screens, which add a device to a home ([ai-app#27](https://github.com/trungnguyen278/ai-app/pull/27)). The phone's Bluetooth comes next. The cloud's side, the registration, through the app API 1.4 ([ai-cloud#25](https://github.com/trungnguyen278/ai-cloud/pull/25)).
 
 ## How it goes
 
