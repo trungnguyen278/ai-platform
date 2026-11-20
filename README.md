@@ -33,6 +33,10 @@ The cloud link and set-up came from ai-robot's `protocol/`, with their history, 
 - an example in English and Vietnamese;
 - MF2's test suite, which each component's library runs.
 
+## Test vectors
+
+[`vectors/`](vectors/README.md) holds texts and messages with the answer that every side must give, which each repository's tests run: what [ADR-0014](docs/decisions/0014-json-every-side-can-hold.md) rules on JSON, and what the protocols' schemas accept, each within a bounded time.
+
 ## Decisions
 
 [`docs/decisions/`](docs/decisions/README.md) holds every decision that spans repositories. A repository's own decisions stay in it. The decisions made before this repository existed are ai-robot's ADR-0001 to ADR-0017, which the index links.

@@ -190,7 +190,8 @@ A session outlives a short loss of its connection (SES-5), as a session of Disco
 | Type | From | Purpose |
 |---|---|---|
 | `hello` | both | Opens or resumes the session |
-| `ping`, `pong` | device, cloud | Keep the connection alive, and say what was received |
+| `ping` | device | Keeps the connection alive, and says what the device received |
+| `pong` | cloud | Answers a `ping`, and says what the cloud received |
 | `reconnect` | cloud | The cloud is about to close this connection: resume on a new one |
 | `bye` | both | Ends the session |
 | `device.changed` | device | The owner changed the device's languages, time zone or allowed classes |
