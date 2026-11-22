@@ -20,7 +20,8 @@ They follow prior art: [JSONTestSuite](https://github.com/nst/JSONTestSuite)'s p
 - each `id`, unique among both files' vectors;
 - each text, at most 1 MiB, the largest message of any protocol (the cloud link's);
 - each reading vector's `result` and `depth`, against the check's own reading of ADR-0014;
-- each validating vector's `result`, against its protocol's schema, read as ECMA-262 reads patterns.
+- each validating vector's `result`, against its protocol's schema, read as ECMA-262 reads patterns;
+- each `keyword`, the only one that its message breaks.
 
 ## A vector
 
@@ -37,6 +38,7 @@ They follow prior art: [JSONTestSuite](https://github.com/nst/JSONTestSuite)'s p
 | `protocol` | validating | The protocol's folder in `protocols/` |
 | `definition` | validating | A definition of the protocol's `schema.json`, in `$defs` |
 | `result` | validating | `valid` or `invalid` |
+| `keyword` | validating | With `invalid`: the only keyword of the definition that the message breaks. A validator that stops at its first error reaches it whatever order it checks keywords in, where a message that breaks `maxItems` too, say, never reaches `uniqueItems` |
 
 Each file's `seconds` is the longest that a side may take over one of its vectors.
 
@@ -49,7 +51,7 @@ Every repository pins this one at `platform/`, so its tests read `platform/vecto
    - `refused`: the reader refuses the text, as it refuses any that it cannot hold, without naming a value.
    - `either`: the reader may do either, but answers each vector of a `group` alike.
    - A vector whose `depth` the side reads, if it reads deeper than 64, is `either` for it: ADR-0014 asks every side to read at least 64 deep.
-3. **Validating:** reads the text with the side's reader, which must read it, and validates the value against `$defs/<definition>` of `protocols/<protocol>/schema.json`, as the side validates what it receives. The side runs the vectors of each protocol that it validates.
+3. **Validating:** reads the text with the side's reader, which must read it, and validates the value against `$defs/<definition>` of `protocols/<protocol>/schema.json`, as the side validates what it receives. The side runs the vectors of each protocol that it validates. A side whose answer names the rule broken checks that it names the vector's `keyword`, where there is one.
 4. **Time:** takes at most the file's `seconds` over each vector, read and validation together, on the machine that runs the tests. A reader or a validation that is linear in the text takes well under a second on a desktop PC; a quadratic one takes hours at 1 MiB.
 
 Where each side runs them:

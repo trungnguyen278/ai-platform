@@ -334,12 +334,40 @@ def vector_bytes(vector: dict[str, Any]) -> bytes:
     ).encode()
 
 
+def keyword_problem(validator: Draft202012Validator, value: Any, keyword: str) -> str | None:
+    """None if `value` breaks `keyword` and nothing else, else what it breaks. A keyword counts
+    where it is broken, through `$ref`, `allOf` and `if`; `anyOf`, `oneOf` and `not` count
+    themselves, as jsonschema reports them."""
+    kinds = sorted({error.validator for error in validator.iter_errors(value)})
+    if kinds == [keyword]:
+        return None
+    return f"breaks {', '.join(kinds) or 'nothing'}, not {keyword} alone"
+
+
+# Values, each with a schema, a keyword, and whether the value breaks that keyword alone.
+PLANTED_KEYWORDS: tuple[tuple[dict[str, Any], Any, str, bool], ...] = (
+    ({"maxItems": 2, "uniqueItems": True}, [1, 1], "uniqueItems", True),
+    ({"maxItems": 2, "uniqueItems": True}, [1, 1, 1], "uniqueItems", False),
+    ({"maxItems": 2, "uniqueItems": True}, [1, 1, 1], "maxItems", False),
+    ({"maxItems": 2, "uniqueItems": True}, [1, 2], "uniqueItems", False),
+    ({"$ref": "#/$defs/a", "$defs": {"a": {"allOf": [{"if": {"type": "array"},
+                                                   "then": {"uniqueItems": True}}]}}},
+     [1, 1], "uniqueItems", True),
+    ({"anyOf": [{"maxItems": 1}, {"uniqueItems": True}]}, [1, 1], "uniqueItems", False),
+)
+
+
 def check_vectors(schemas: dict[str, Any]) -> list[str]:
     """Problems with the test vectors: their files, against vectors/schema.json and ADR-0014;
     and each vector, which must be unique, at most MAX_VECTOR long, and get its result from
-    the check's own reader and from the protocols' schemas."""
+    the check's own reader and from the protocols' schemas, and break its `keyword` alone.
+    The check of a keyword must answer the planted values as written."""
     form = json.loads((VECTORS / "schema.json").read_text(encoding="utf-8"))
-    problems: list[str] = []
+    problems = [
+        f"tools/check.py: {'refuses' if alone else 'accepts'} {value} as breaking {keyword} alone"
+        for schema, value, keyword, alone in PLANTED_KEYWORDS
+        if (keyword_problem(Draft202012Validator(schema), value, keyword) is None) != alone
+    ]
     ids: set[str] = set()
     validating: dict[tuple[str, str], Draft202012Validator] = {}
     for name in VECTOR_FILES:
@@ -382,6 +410,10 @@ def check_vectors(schemas: dict[str, Any]) -> list[str]:
             if valid != (vector["result"] == "valid"):
                 problems.append(
                     f"{label}: {'valid' if valid else 'invalid'}, not {vector['result']}")
+            elif "keyword" in vector:
+                problem = keyword_problem(validating[key], value, vector["keyword"])
+                if problem:
+                    problems.append(f"{label}: {problem}")
     return problems
 
 
