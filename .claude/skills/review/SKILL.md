@@ -59,6 +59,7 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **A check that is itself quadratic:** the check reads 1 MiB vectors. `list.count` inside a loop, or a regular expression tried again at each place of a string that never closes, takes hours on them. Count with `Counter`, read each string once, as `NESTING` does, and see that the check still takes seconds.
 - **Every error collected before one is chosen:** jsonschema's `best_match(iter_errors(…))` builds an error for each wrong item before it picks one, 3 to 5 s for a 1 MiB array in ai-cloud and ai-robot (2026-11-20), where `is_valid` and Ajv stop at the first. The check validates the vectors with `is_valid`.
 - **A vector for each bug class:** a bug that a side meets in reading or validating JSON gets a vector in `vectors/`, in the pull request that finds it, so that every side runs it.
+- **A vector that reaches its keyword:** a validator that stops at its first error never reaches a keyword behind one that the message breaks already, such as `uniqueItems` behind `maxItems` or `items`. A vector for a keyword breaks it alone, and says so in `keyword`, which the check holds to.
 
 ### A decision
 

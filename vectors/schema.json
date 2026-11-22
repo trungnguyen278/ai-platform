@@ -75,7 +75,12 @@
         },
         "text": {"$ref": "#/$defs/text"},
         "parts": {"$ref": "#/$defs/parts"},
-        "result": {"enum": ["valid", "invalid"]}
+        "result": {"enum": ["valid", "invalid"]},
+        "keyword": {
+          "description": "The only keyword of the definition that an invalid message breaks, so that a validator that stops at its first error reaches it too",
+          "type": "string",
+          "pattern": "^[a-zA-Z]+$"
+        }
       }
     },
     "id": {
