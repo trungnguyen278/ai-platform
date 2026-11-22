@@ -91,11 +91,9 @@
     {
       "from": "app",
       "request": "PATCH /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
-      "headers": {
-        "If-Match": "W/\"1\""
-      },
       "message": {
-        "name": "Bi"
+        "name": "Bi",
+        "etag": "W/\"1\""
       }
     },
     {
@@ -125,6 +123,27 @@
         "connected": true,
         "create_time": "2026-11-05T09:00:03Z",
         "etag": "W/\"2\""
+      }
+    },
+    {
+      "note": "On her tablet, which still shows the device as it was before she named it, Linh renames it \"Robot Bi\". Its etag is no longer the device's, so the cloud changes nothing, and the app reads the device again."
+    },
+    {
+      "from": "app",
+      "request": "PATCH /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
+      "message": {
+        "name": "Robot Bi",
+        "etag": "W/\"1\""
+      }
+    },
+    {
+      "from": "cloud",
+      "status": 409,
+      "message": {
+        "type": "/app/v1/problems/etag_mismatch",
+        "title": "Etag mismatch",
+        "status": 409,
+        "detail": "This device changed since it was read."
       }
     },
     {
@@ -194,11 +213,9 @@
     {
       "from": "app",
       "request": "PATCH /app/v1/homes/01a1a592-7000-71fb-9722-9e6fccd5bf7b/devices/4a4ce4bd-2853-43d8-98dc-3dc06daec6e5",
-      "headers": {
-        "If-Match": "W/\"2\""
-      },
       "message": {
-        "name": "Robot"
+        "name": "Robot",
+        "etag": "W/\"2\""
       }
     },
     {
