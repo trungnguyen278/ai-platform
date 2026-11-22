@@ -46,7 +46,7 @@ Each file's `seconds` is the longest that a side may take over one of its vector
 
 Every repository pins this one at `platform/`, so its tests read `platform/vectors/`. For each vector, a side's test:
 1. Makes the vector's bytes: `text` or `parts` in UTF-8, or `hex`.
-2. **Reading:** gives the bytes to the reader as the transport does. A WebSocket text frame and an HTTP body are decoded as UTF-8 first, and bytes that are not UTF-8 fail there: that failure counts as `refused`.
+2. **Reading:** gives the bytes to the reader as the transport does. A WebSocket text message and an HTTP body are decoded as UTF-8 first, and bytes that are not UTF-8 fail there: that failure counts as `refused`.
    - `read`: the reader returns the value that the platform's standard parser returns, such as Python's `json.loads` or JavaScript's `JSON.parse`.
    - `refused`: the reader refuses the text, as it refuses any that it cannot hold, without naming a value.
    - `either`: the reader may do either, but answers each vector of a `group` alike.

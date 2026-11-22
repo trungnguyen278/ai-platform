@@ -53,6 +53,7 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **Bytes that a text cannot hold:** a value that comes as bytes, such as a network's name, can hold a NUL byte, which ADR-0014 keeps out of every text. The protocol gives it another form, such as `ssid_hex`, and says when a side uses it.
 - **A condition on a weak tag:** RFC 9110 compares `If-Match` strongly, so that a weak tag never passes it (§13.1.1), and a tag that does not change with every change of what `GET` answers is weak (§8.8.3). A condition on what people change goes in the body, as the app API's `etag` since 1.7, after Google's AIP-154.
 - **Every limit that a side refuses past:** the specification names it, with its answer and whether the bound itself passes, such as the app API's 64 KiB body and its `413`. A limit that only a side's configuration holds is one that the other side meets unwarned.
+- **A limit on what a sender may cut as it likes:** a receiver that counts frames, pings or chunks closes legal senders unless the protocol bounds how finely they come. RFC 6455 lets a message come in fragments of any size, so a frame limit closed 1 MiB messages in 1 KiB fragments, which ESP-IDF's client sends (the cloud link 3.4). The text says what a sender may do, that a receiver lets all of it through at whatever pace it reads, and what comes past it; the library's defaults are looked up in its source.
 
 ### The check
 
