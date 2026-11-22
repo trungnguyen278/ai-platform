@@ -2,7 +2,7 @@
 
 How the owner's app talks to `ai-cloud`: signing in, the account and its sessions, homes and the people in them, and a home's devices, which set-up registers.
 
-Version **1.6**:
+Version **1.7**:
 - It builds on:
   - [ADR-0008](../../docs/decisions/0008-sign-in.md): the cloud's own accounts, reached with Google or Apple, and sessions of its own tokens, which [ADR-0011](../../docs/decisions/0011-refreshing-again.md) lets an app refresh again after a lost answer;
   - [ADR-0005](../../docs/decisions/0005-homes.md) and [ADR-0009](../../docs/decisions/0009-people-in-a-home.md): homes, the people who are their members, what each may do, and how they join;
@@ -15,6 +15,7 @@ Version **1.6**:
 - [`schema.json`](schema.json) defines every request and response body, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
+- **1.7** moves a change's `etag` from `If-Match` into its body, as Google's AIP-154 has it, since the etags are weak, which `If-Match` never matches by RFC 9110. An etag that is no longer the thing's gets `409` `etag_mismatch` ([Requests](#requests)). The cloud still takes `If-Match` as 1.6 has it, for apps of 1.6. It also names the largest body that the cloud reads, 64 KiB, and the `413` that a larger one gets, as the cloud already answers ([The cloud's address](#the-clouds-address)). An app of 1.6 meets no change.
 - **1.6** holds every JSON body to [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md): I-JSON, without U+0000, at most 64 levels deep. The cloud answers a body that it cannot hold with `400`, as it answers one that breaks `schema.json`, which the text now says. Names already refused U+0000, so an app of 1.5 that sends no lone surrogate and nothing nested past 64 meets no change.
 - 1.5 names a home's devices: the app sends a device's own name with its registration, and the owner or an admin renames it, with `If-Match` ([ADR-0013](../../docs/decisions/0013-setting-devices-up.md)). It also says how far an `Idempotency-Key` is unique. An app of 1.4 sends no name and reads no new field, so nothing breaks.
 - **1.4** adds a home's devices: a challenge to register one at set-up, the registration that the app relays, reading them, and removing one ([ADR-0012](../../docs/decisions/0012-registering-devices.md)). An app of 1.3 calls none of it, so nothing breaks.
@@ -35,6 +36,8 @@ The app's configuration names the cloud, as `https://`; `http://` only to a deve
 Devices may reach the cloud at another address, which the cloud gives with each challenge to register one ([Adding a device](#adding-a-device)).
 
 Bodies are JSON (`application/json`) that every side can hold ([ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md)), except at the OAuth endpoints, which take form fields (`application/x-www-form-urlencoded`) as OAuth does. The schema and the examples write those fields as a JSON object. A body that the cloud cannot read or hold, or that breaks `schema.json`, gets `400`, `about:blank`.
+
+**A request's body holds up to 64 KiB,** 65,536 bytes as sent. The cloud reads every body up to that size, one of exactly 64 KiB included, and answers a larger one with `413`, `about:blank`, at every endpoint, OAuth's included, without reading the rest ([RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), §15.5.14). It answers at once when `Content-Length` says so, and otherwise once the body passes the size. Every body of this API fits well within it: the largest, the exchange of Apple's ID token with its code, stays under 16 KiB at the longest that `schema.json` allows, even with every character of the code percent-encoded.
 
 ## Signing in
 
@@ -160,6 +163,10 @@ The cloud ends the session, and answers `200` whatever the token was ([RFC 7009]
   - **A retry** is the same request with the same key: the same method, path and body. It gets the first answer, for `idempotency_retention`.
   - **A key's uniqueness is its kind of request's,** within its account, as [the IETF's draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/), version 08, leaves it to the server (§2.2). Within a kind, such as creating a home or registering a device, a key that comes with another path or body gets `422`. On another kind of request, the same key is no retry: the cloud may answer `422`, or take it as a new request. So the app makes a new key for each new request.
   - **No key** gets `400`, and **a retry while the first request still runs** gets `409`, which the app tries again (§2.7). These and `422` are `about:blank`.
+- **`etag`** ([ADR-0004](../../docs/decisions/0004-conventions.md), Google's [AIP-154](https://google.aip.dev/154)): the account, a home, a person in it and a device each have one, which changes when what people may change of it does. A `PATCH` that brings it in its body, beside the fields to change, makes the change only if the thing still has that etag, compared as written. Otherwise the cloud changes nothing and answers `409` `etag_mismatch`, and the app reads the thing again. A retry whose first try made the change gets it too, and the app, reading again, finds its change made. A `PATCH` without an etag makes the change whatever the thing's etag, and one with an etag alone, nothing to change, gets `400`.
+  - **The etags are weak,** `W/"…"`: they do not change with what the cloud learns, such as a device's `connected`, nor with what each person sees, such as `current`, so that a change does not race them. RFC 9110 has a tag that does not change with every change of what `GET` answers marked weak (§8.8.3).
+  - **Not in `If-Match`:** RFC 9110 compares `If-Match` strongly, and a weak tag never matches there (§13.1.1, §8.8.3.2). Apps of 1.1 to 1.6 sent the etag as `If-Match`, so the cloud still takes it there for them, as long as it speaks this major version ([ADR-0003](../../docs/decisions/0003-compatibility.md)): compared as written, `*` matching any, with `412` when it does not match. An app of 1.7 sends no `If-Match`. When a request brings both, the cloud checks each.
+  - **Prior art,** read 2026-11-22: AIP-154 sends an update's etag in the resource itself, lets an etag be weak, and refuses one that no longer matches with `ABORTED`, which Google's APIs answer as `409` (`google/rpc/code.proto`). GitHub supports no conditional request on a write ([best practices](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api)), and replaces a file only with its `sha` in the body ([contents](https://docs.github.com/en/rest/repos/contents)). Azure's [guidelines](https://github.com/microsoft/api-guidelines/blob/vNext/azure/Guidelines.md#conditional-requests) take `If-Match` with a hash of the whole resource, and weak tags where only some changes matter. Stripe has neither, and locks an object that two requests change at once ([rate limits](https://docs.stripe.com/rate-limits#object-lock-timeouts)).
 
 ## The account
 
@@ -182,7 +189,7 @@ The cloud ends the session, and answers `200` whatever the token was ([RFC 7009]
 
 `PATCH /app/v1/account`, with the fields to change: `display_name`, `languages`, or both. The cloud answers with the account.
 
-- **`If-Match`,** with the account's `etag`, makes the change only if nobody changed the account since ([ADR-0004](../../docs/decisions/0004-conventions.md)). Otherwise the cloud answers `412`.
+- **`etag`,** the account's, makes the change only if nobody changed the account since it was read ([Requests](#requests)). Otherwise the cloud answers `409` `etag_mismatch`.
 - **`display_name`** is 1 to 100 characters, and **`languages`** 0 to 10 BCP 47 tags. A name with control characters gets `400`.
 
 ### Deleting it
@@ -269,7 +276,7 @@ The cloud answers `201`, with the home. The person who asks is its owner.
 
 - **Listing:** `GET /app/v1/homes` lists the homes the account is in, in pages, as sessions are: `{"homes": […], "next_page_token": ""}`.
 - **Reading one:** `GET /app/v1/homes/{home_id}`.
-- **Changing it:** `PATCH /app/v1/homes/{home_id}`, for the owner and admins, with the fields to change: `name`, `time_zone`, `languages`. The cloud answers with the home. `If-Match` works as for the account.
+- **Changing it:** `PATCH /app/v1/homes/{home_id}`, for the owner and admins, with the fields to change: `name`, `time_zone`, `languages`. The cloud answers with the home. Its `etag` works as the account's.
 
 ### The people in a home
 
@@ -292,7 +299,7 @@ The cloud answers `201`, with the home. The person who asks is its owner.
 
 **Adding a profile:** `POST /app/v1/homes/{home_id}/members`, for the owner and admins, with an `Idempotency-Key` and `{"display_name": "Bà"}`, answers `201` with the member. People with accounts come by invitation. A home with `members_per_home` people gets `409` `member_limit_reached`.
 
-**Changing a person:** `PATCH /app/v1/homes/{home_id}/members/{member_id}`, with `If-Match` as for the account, answers with the member.
+**Changing a person:** `PATCH /app/v1/homes/{home_id}/members/{member_id}`, with the person's `etag` as for the account, answers with the member.
 - **`display_name`,** 1 to 100 characters without control characters, is for the owner to change on anyone, for an admin on members and profiles, and for anyone on themself.
 - **`role`,** `admin` or `member`, is for the owner to change, on another person with an account. Only handing the home over makes an owner. A role on a profile, or on the owner, gets `409`. Demoting an admin revokes the invitations they made.
 
@@ -429,7 +436,7 @@ The cloud answers `201` with the device, now in the home:
 
 **At set-up,** the device has the name that its registration brought. The app shows it, pre-filled, while the device connects: a person who keeps it sends nothing, so that one tap accepts it.
 
-**Renaming:** `PATCH /app/v1/homes/{home_id}/devices/{device_id}`, for the owner and admins, with `{"name": "Bi"}`, answers with the device. `If-Match` works as for the account.
+**Renaming:** `PATCH /app/v1/homes/{home_id}/devices/{device_id}`, for the owner and admins, with `{"name": "Bi", "etag": "W/\"1\""}`, answers with the device. Its `etag` works as the account's.
 - **`name`** is 1 to 100 characters, without control characters, as a home's. Two devices of a home may share one, as two homes or two people may.
 - **A device registered without a name,** by an app of 1.4, has none until someone gives it one. The app shows its own name for the device's kind meanwhile, so that no list shows an identifier.
 
@@ -495,8 +502,9 @@ The cloud answers `201` with the device, now in the home:
   | `registration_invalid` | 400 | The device's registration does not verify, or its challenge is unknown, expired, used, or another account's or home's |
   | `device_taken` | 409 | The device is in another home, or its key or its identifier is another device's |
   | `device_limit_reached` | 409 | The home has as many devices as it may have |
+  | `etag_mismatch` | 409 | The thing changed since the `etag` that the change brought: the app reads it again. Since 1.7. |
 
-- **Limits:** a request over a limit gets `429`, with `Retry-After`.
+- **Limits:** a request over a limit gets `429`, with `Retry-After`. A body over 64 KiB gets `413` ([The cloud's address](#the-clouds-address)).
 - **Text:** `detail` and `error_description` are for logs, in English. The app shows people texts of its own catalogs, chosen by status and type.
 
 ## Development
@@ -522,7 +530,7 @@ How this version meets the [requirements](../cloud/requirements.md#9-security):
   - access tokens expire within `access_lifetime`;
   - refresh tokens rotate, and one presented again ends its session, but for a retry just after its first use, while its replacement is unused. A retry continues the same session, whose replacement then stops working, so that it never has two refresh tokens that work;
   - an invitation's code works once, expires, and is kept only as a hash. Removing or demoting the person who made it revokes it, so that nobody keeps a way back in.
-- **SEC-14, SEC-15:** the cloud validates every body against `schema.json` and [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md), and limits rates, the nonces', the invitation codes' and the challenges' above all.
+- **SEC-14, SEC-15:** the cloud validates every body against `schema.json` and [ADR-0014](../../docs/decisions/0014-json-every-side-can-hold.md), refuses a body over 64 KiB, and limits rates, the nonces', the invitation codes' and the challenges' above all.
 - **PRIV-4:** the person deletes the account, and with it everything that is theirs, from the app or the web. A fresh sign-in comes first, so that a phone left unlocked cannot do it. Leaving a home, or being removed from it, deletes what belongs to the person there, and deleting a home deletes all it holds.
 - **PRIV-7:** accounts are for adults. The cloud keeps no birth date and has no child accounts. What the cloud may keep for a profile is settled with the law on personal data (ai-cloud ADR-0006), before the first real users.
 - **People in a home see each other's names, and nothing else.**
@@ -553,7 +561,7 @@ The values below are starting points, not part of the protocol: the cloud sets i
 
 ## Changing the protocol
 
-- **Minor version.** A new endpoint, or a new optional field, raises the minor version. The specification, the schema and the examples change together (CONTRIBUTING.md, rule 2).
+- **Minor version.** A new endpoint, or a new optional field, raises the minor version. The specification, the schema and the examples change together (CONTRIBUTING.md, rule 2). The cloud speaks a minor version before an app of it is released: the app learns no version from the cloud, and a cloud of an earlier minor ignores the fields that it does not know, such as 1.7's `etag` in a change's body.
 - **Major version.** Changing or removing anything the app relies on raises the major version, with a path of its own (`/app/v2/`). The cloud serves both majors side by side ([ADR-0003](../../docs/decisions/0003-compatibility.md)).
 
 ## References

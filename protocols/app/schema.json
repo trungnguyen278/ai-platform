@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "The app API, ai-app and ai-cloud, version 1.6",
+  "title": "The app API, ai-app and ai-cloud, version 1.7",
   "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {
@@ -94,6 +94,7 @@
       "description": "A home's default languages, most preferred first (ADR-0002, ADR-0005)"
     },
     "etag": {
+      "description": "A weak entity tag, W/\"…\", which the cloud compares as written. A change brings it in its body (README, Requests).",
       "type": "string",
       "minLength": 1,
       "maxLength": 128
@@ -202,7 +203,7 @@
       }
     },
     "account_update": {
-      "description": "PATCH /app/v1/account: the fields to change (README, Changing it)",
+      "description": "PATCH /app/v1/account: the fields to change, and the account's etag if the change is made only on it (README, Changing it). An etag alone changes nothing.",
       "type": "object",
       "minProperties": 1,
       "properties": {
@@ -211,6 +212,14 @@
         },
         "languages": {
           "$ref": "#/$defs/languages"
+        },
+        "etag": {
+          "$ref": "#/$defs/etag"
+        }
+      },
+      "dependentSchemas": {
+        "etag": {
+          "minProperties": 2
         }
       }
     },
@@ -250,7 +259,7 @@
       }
     },
     "home_update": {
-      "description": "PATCH /app/v1/homes/{home_id}: the fields to change (README, Reading and changing a home)",
+      "description": "PATCH /app/v1/homes/{home_id}: the fields to change, and the home's etag if the change is made only on it (README, Reading and changing a home). An etag alone changes nothing.",
       "type": "object",
       "minProperties": 1,
       "properties": {
@@ -262,6 +271,14 @@
         },
         "languages": {
           "$ref": "#/$defs/home_languages"
+        },
+        "etag": {
+          "$ref": "#/$defs/etag"
+        }
+      },
+      "dependentSchemas": {
+        "etag": {
+          "minProperties": 2
         }
       }
     },
@@ -278,7 +295,7 @@
       }
     },
     "member_update": {
-      "description": "PATCH /app/v1/homes/{home_id}/members/{member_id}: the fields to change (README, The people in a home)",
+      "description": "PATCH /app/v1/homes/{home_id}/members/{member_id}: the fields to change, and the person's etag if the change is made only on it (README, The people in a home). An etag alone changes nothing.",
       "type": "object",
       "minProperties": 1,
       "properties": {
@@ -290,6 +307,14 @@
         },
         "display_name": {
           "$ref": "#/$defs/name"
+        },
+        "etag": {
+          "$ref": "#/$defs/etag"
+        }
+      },
+      "dependentSchemas": {
+        "etag": {
+          "minProperties": 2
         }
       }
     },
@@ -341,7 +366,7 @@
       }
     },
     "device_update": {
-      "description": "PATCH /app/v1/homes/{home_id}/devices/{device_id}: a new name (README, Naming a device). from_app reads it as a home_update, whose name is the same.",
+      "description": "PATCH /app/v1/homes/{home_id}/devices/{device_id}: a new name, and the device's etag if the change is made only on it (README, Naming a device). from_app reads it as a home_update, whose name and etag are the same.",
       "type": "object",
       "required": [
         "name"
@@ -349,6 +374,9 @@
       "properties": {
         "name": {
           "$ref": "#/$defs/name"
+        },
+        "etag": {
+          "$ref": "#/$defs/etag"
         }
       }
     },

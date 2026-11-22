@@ -12,7 +12,7 @@ They follow prior art: [JSONTestSuite](https://github.com/nst/JSONTestSuite)'s p
   - numbers past a double, taken in one spelling and refused in another;
   - nesting just past 64, and far past it, which a recursive reader cannot reach;
   - 1 MiB texts, which a reader that takes quadratic time cannot finish.
-- [`validating.json`](validating.json): messages for a side's schema validation, with 1 MiB arrays of objects that a quadratic `uniqueItems` cannot finish.
+- [`validating.json`](validating.json): messages for a side's schema validation, with 1 MiB arrays of objects that a quadratic `uniqueItems` cannot finish, and the app API's changes with their `etag`, which only `dependentSchemas` keeps from coming alone.
 - [`schema.json`](schema.json): the format of both files, in JSON Schema (draft 2020-12).
 
 `tools/check.py` checks them:

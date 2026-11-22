@@ -80,6 +80,70 @@
       "result": "valid"
     },
     {
+      "id": "app-device-name-etag",
+      "comment": "A device's new name with its etag, as the examples have it: from_app reads it as a home's change.",
+      "protocol": "app",
+      "definition": "from_app",
+      "text": "{\"name\": \"Bi\", \"etag\": \"W/\\\"1\\\"\"}",
+      "result": "valid"
+    },
+    {
+      "id": "app-etag-alone",
+      "comment": "A change that brings its etag and nothing to change, which dependentSchemas refuses: from_app reads it as the account's.",
+      "protocol": "app",
+      "definition": "from_app",
+      "text": "{\"etag\": \"W/\\\"1\\\"\"}",
+      "result": "invalid"
+    },
+    {
+      "id": "app-home-etag-alone",
+      "comment": "A home's change with its etag alone.",
+      "protocol": "app",
+      "definition": "home_update",
+      "text": "{\"etag\": \"W/\\\"1\\\"\"}",
+      "result": "invalid"
+    },
+    {
+      "id": "app-member-etag-alone",
+      "comment": "A person's change with their etag alone.",
+      "protocol": "app",
+      "definition": "member_update",
+      "text": "{\"etag\": \"W/\\\"1\\\"\"}",
+      "result": "invalid"
+    },
+    {
+      "id": "app-home-etag-empty",
+      "comment": "A change of name with an empty etag, which from_app reads as a home's.",
+      "protocol": "app",
+      "definition": "from_app",
+      "text": "{\"name\": \"Bi\", \"etag\": \"\"}",
+      "result": "invalid"
+    },
+    {
+      "id": "app-device-etag-empty",
+      "comment": "A device's new name with an empty etag.",
+      "protocol": "app",
+      "definition": "device_update",
+      "text": "{\"name\": \"Bi\", \"etag\": \"\"}",
+      "result": "invalid"
+    },
+    {
+      "id": "app-account-etag-129",
+      "comment": "The account's change with an etag of 129 characters, one past the most.",
+      "protocol": "app",
+      "definition": "from_app",
+      "text": "{\"display_name\": \"Linh\", \"etag\": \"W/\\\"11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\\\"\"}",
+      "result": "invalid"
+    },
+    {
+      "id": "app-member-etag-129",
+      "comment": "A person's change with an etag of 129 characters, one past the most.",
+      "protocol": "app",
+      "definition": "from_app",
+      "text": "{\"role\": \"admin\", \"etag\": \"W/\\\"11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111\\\"\"}",
+      "result": "invalid"
+    },
+    {
       "id": "cloud-hello-events-many-objects",
       "comment": "The cloud's hello, with as many distinct objects as fit where events go.",
       "protocol": "cloud",

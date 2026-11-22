@@ -51,11 +51,9 @@
     {
       "from": "app",
       "request": "PATCH /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510",
-      "headers": {
-        "If-Match": "W/\"1\""
-      },
       "message": {
-        "name": "Nhà của Linh"
+        "name": "Nhà của Linh",
+        "etag": "W/\"1\""
       }
     },
     {
@@ -298,12 +296,10 @@
     {
       "from": "app",
       "request": "PATCH /app/v1/homes/01a1a06c-1400-7ffd-b448-26955bb4d510/members/01a1a087-8b40-78fa-a849-084724ef9500",
-      "headers": {
-        "If-Match": "W/\"1\""
-      },
       "message": {
         "role": "admin",
-        "display_name": "Anh Minh"
+        "display_name": "Anh Minh",
+        "etag": "W/\"1\""
       }
     },
     {

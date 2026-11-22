@@ -51,6 +51,8 @@ What CI runs: every schema is valid JSON Schema, and every example validates aga
 - **Every way a framing can fail:** for fragments or frames, the text lists each case that does not fit (flags, a length out of range, too short to hold the length, out of order, too many or too few bytes) and what the receiver holds at most, empty fragments included.
 - **A size within every layer's limit:** a fragment fits the ATT MTU minus 3 and an attribute's 512 bytes too, which an MTU of 517, Android 14's, would pass. Look up each layer's limit, in the stack's source too, such as BlueZ's `BT_ATT_MAX_VALUE_LEN`.
 - **Bytes that a text cannot hold:** a value that comes as bytes, such as a network's name, can hold a NUL byte, which ADR-0014 keeps out of every text. The protocol gives it another form, such as `ssid_hex`, and says when a side uses it.
+- **A condition on a weak tag:** RFC 9110 compares `If-Match` strongly, so that a weak tag never passes it (§13.1.1), and a tag that does not change with every change of what `GET` answers is weak (§8.8.3). A condition on what people change goes in the body, as the app API's `etag` since 1.7, after Google's AIP-154.
+- **Every limit that a side refuses past:** the specification names it, with its answer and whether the bound itself passes, such as the app API's 64 KiB body and its `413`. A limit that only a side's configuration holds is one that the other side meets unwarned.
 
 ### The check
 
