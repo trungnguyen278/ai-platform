@@ -303,6 +303,48 @@
       "text": "{\"grant_type\": \"urn:ietf:params:oauth:grant-type:token-exchange\", \"subject_token\": \"eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxIn0.c2ln\", \"subject_token_type\": \"urn:ietf:params:oauth:token-type:id_token\", \"client_id\": \"ai-app\", \"authorization_code\": \"c1.0.é\"}",
       "result": "invalid",
       "keyword": "pattern"
+    },
+    {
+      "id": "app-revoke-hint-unknown",
+      "comment": "A hint that the cloud does not know, UMA 2.0's, which it ignores since 1.9.",
+      "protocol": "app",
+      "definition": "revoke_request",
+      "text": "{\"token\": \"rT1n9v0wq8cT2zrQyD6qG8\", \"token_type_hint\": \"pct\", \"client_id\": \"ai-app\"}",
+      "result": "valid"
+    },
+    {
+      "id": "app-revoke-hint-urn",
+      "comment": "A hint written as RFC 8693's token type, which node-oidc-provider reads.",
+      "protocol": "app",
+      "definition": "revoke_request",
+      "text": "{\"token\": \"rT1n9v0wq8cT2zrQyD6qG8\", \"token_type_hint\": \"urn:ietf:params:oauth:token-type:refresh_token\", \"client_id\": \"ai-app\"}",
+      "result": "valid"
+    },
+    {
+      "id": "app-revoke-hint-128",
+      "comment": "A hint of 128 characters, the longest, from both ends of printable ASCII: a space, then tildes.",
+      "protocol": "app",
+      "definition": "revoke_request",
+      "text": "{\"token\": \"rT1n9v0wq8cT2zrQyD6qG8\", \"token_type_hint\": \" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\", \"client_id\": \"ai-app\"}",
+      "result": "valid"
+    },
+    {
+      "id": "app-revoke-hint-129",
+      "comment": "A hint of 129 characters, one past the longest.",
+      "protocol": "app",
+      "definition": "revoke_request",
+      "text": "{\"token\": \"rT1n9v0wq8cT2zrQyD6qG8\", \"token_type_hint\": \"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\", \"client_id\": \"ai-app\"}",
+      "result": "invalid",
+      "keyword": "maxLength"
+    },
+    {
+      "id": "app-revoke-hint-not-ascii",
+      "comment": "A hint with a letter past printable ASCII, to which OAuth keeps its values.",
+      "protocol": "app",
+      "definition": "revoke_request",
+      "text": "{\"token\": \"rT1n9v0wq8cT2zrQyD6qG8\", \"token_type_hint\": \"refresh_tokén\", \"client_id\": \"ai-app\"}",
+      "result": "invalid",
+      "keyword": "pattern"
     }
   ]
 }
