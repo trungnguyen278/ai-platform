@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "The app API, ai-app and ai-cloud, version 1.8",
+  "title": "The app API, ai-app and ai-cloud, version 1.9",
   "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {
@@ -196,10 +196,10 @@
           "$ref": "#/$defs/token"
         },
         "token_type_hint": {
-          "enum": [
-            "refresh_token",
-            "access_token"
-          ]
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[ -~]+$",
+          "description": "Which kind of token the cloud looks for first (RFC 7009, 2.1): it reads access_token and refresh_token, and ignores any other hint, which changes nothing in its answer (2.2). Printable ASCII, as OAuth writes its values (RFC 6749, A)"
         },
         "client_id": {
           "$ref": "#/$defs/client_id"
