@@ -1,6 +1,6 @@
 # 0004 — Conventions: one way to write identifiers, time, errors and APIs
 
-- **Status:** Accepted
+- **Status:** Accepted. Decision 5's ETags travel in the body of a change since [the app API 1.7](../../protocols/app/README.md#requests), as Google's AIP-154 has it, not in `If-Match`: they are weak, and RFC 9110 never matches a weak tag there.
 - **Date:** 2026-10-28
 
 ## Context

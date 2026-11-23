@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Cloud link, version 3.4",
+  "title": "Cloud link, version 3.5",
   "description": "Every message of protocols/cloud/README.md. On the control channel, each is one WebSocket text message: validate a device's against #/$defs/from_device, the cloud's against #/$defs/from_cloud. In a conversation's room, each is one text stream: validate the agent's against #/$defs/from_agent, the device's against #/$defs/from_device_in_room. Unknown message types and fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {"type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"},

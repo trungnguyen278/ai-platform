@@ -11,7 +11,7 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0001](0001-repositories.md) | Repositories: a family of AI products, sharing one platform | Accepted | 2026-10-28 |
 | [0002](0002-languages.md) | Languages: Vietnamese first, any language added as data | Accepted | 2026-10-28 |
 | [0003](0003-compatibility.md) | Compatibility: every device in the field keeps working | Accepted | 2026-10-28 |
-| [0004](0004-conventions.md) | Conventions: one way to write identifiers, time, errors and APIs | Accepted | 2026-10-28 |
+| [0004](0004-conventions.md) | Conventions: one way to write identifiers, time, errors and APIs | Accepted; its ETags in a change's body since the app API 1.7 | 2026-10-28 |
 | [0005](0005-homes.md) | Homes: a device belongs to a home, and people are its members | Accepted | 2026-10-28 |
 | [0006](0006-two-channels.md) | The cloud link in two channels: control always on, media only to talk | Accepted | 2026-10-28 |
 | [0007](0007-catalogs.md) | Catalogs: Unicode MessageFormat 2, one JSON file per language | Accepted | 2026-10-30 |
@@ -20,7 +20,7 @@ Each significant decision is a short file: context, decision, alternatives consi
 | [0010](0010-patterns.md) | Patterns: regular expressions that every engine reads alike | Accepted | 2026-11-03 |
 | [0011](0011-refreshing-again.md) | Refreshing again, after an answer was lost | Accepted | 2026-11-04 |
 | [0012](0012-registering-devices.md) | Registering a device into a home: the cloud's challenge, signed by the device, relayed by the app | Accepted; its open question on names settled by 0013; a device's own leaving added by 0015 | 2026-11-05 |
-| [0013](0013-setting-devices-up.md) | Setting a device up: the steps, its name in its home, and a new network | Accepted | 2026-11-12 |
+| [0013](0013-setting-devices-up.md) | Setting a device up: the steps, its name in its home, and a new network | Accepted; a renaming's etag in its body since the app API 1.7 | 2026-11-12 |
 | [0014](0014-json-every-side-can-hold.md) | JSON that every side can hold: I-JSON, no NUL, at most 64 deep | Accepted | 2026-11-12 |
 | [0015](0015-factory-reset.md) | A device's factory reset: it leaves its home, then erases itself | Accepted | 2026-11-18 |
 

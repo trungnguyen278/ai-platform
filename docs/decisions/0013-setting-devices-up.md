@@ -1,6 +1,6 @@
 # 0013 — Setting a device up: the steps, its name in its home, and a new network
 
-- **Status:** Accepted. The owner approved the flow and its four choices on 2026-11-12 (decisions 1 and 2). The rest is technical, delegated to the assistant (decisions 3 to 9).
+- **Status:** Accepted. The owner approved the flow and its four choices on 2026-11-12 (decisions 1 and 2). The rest is technical, delegated to the assistant (decisions 3 to 9). Decision 3's renaming brings the device's `etag` in its body, not in `If-Match`, since [the app API 1.7](../../protocols/app/README.md#requests), as every change does.
 - **Date:** 2026-11-12
 
 ## Context
