@@ -3,11 +3,11 @@
 each keyword of one type has its type declared as Ajv's strictTypes asks, and each
 uniqueItems has its bounds beside it; every example follows its schema, whose patterns are
 read as ECMA-262 reads them, and holds only JSON that every side can hold (ADR-0014); each
-protocol's README names the version of its schema's title, and each message of its tables has
-a definition of its own in its sender's; and a new minor version still accepts the examples
-of the version before it. Check the test vectors, against the check's own reading of
-ADR-0014 and against the schemas; and the catalogs: their schema, their examples, and the
-copy of MF2's test suite.
+protocol's README names the version of its schema's title, as the root README's table does,
+and each message of its tables has a definition of its own in its sender's; and a new minor
+version still accepts the examples of the version before it. Check the test vectors, against
+the check's own reading of ADR-0014 and against the schemas; and the catalogs: their schema,
+their examples, and the copy of MF2's test suite.
 
     python tools/check.py
 
@@ -569,6 +569,59 @@ def check_naming() -> list[str]:
     ]
 
 
+# A row of the root README's table of protocols: the link to a protocol's README, whose folder
+# it captures, then who speaks it, then its version, which must be its schema's title's.
+LISTING_ROW = re.compile(
+    r"^\| \[[^\]\n]*\]\(protocols/([^/)\n]+)/README\.md\) \|[^|\n]*\|([^|\n]*)\|", re.MULTILINE
+)
+
+
+def listed_versions(readme: str, versions: dict[str, str]) -> list[str]:
+    """Problems with the versions that the root README's table gives, against `versions`, each
+    protocol's folder with the version of its schema's title."""
+    rows: dict[str, list[str]] = {}
+    for folder, version in LISTING_ROW.findall(readme):
+        rows.setdefault(folder, []).append(version.strip())
+    problems = [f"the table lists {folder}, which has no schema" for folder in rows
+                if folder not in versions]
+    for folder, version in versions.items():
+        found = rows.get(folder, [])
+        if found != [version]:
+            listed = ", ".join(found) or "no version"
+            problems.append(f"the table gives {folder} {listed}, its schema's title {version}")
+    return problems
+
+
+# Root READMEs that the check of their table must accept, and refuse, against the versions.
+LISTED_CLOUD = "| [Cloud link](protocols/cloud/README.md) | A device and ai-cloud | {} | ADR |\n"
+LISTED_APP = "| [App API](protocols/app/README.md) | The app and ai-cloud | 1.8 | ADR |\n"
+PLANTED_LISTINGS: tuple[tuple[str, dict[str, str], bool], ...] = (
+    ("| Protocol | Between | Version |\n|---|---|---|\n" + LISTED_CLOUD.format("3.5"),
+     {"cloud": "3.5"}, True),
+    (LISTED_CLOUD.format("3.5") + LISTED_APP, {"cloud": "3.5", "app": "1.8"}, True),
+    (LISTED_CLOUD.format(" 12.10 "), {"cloud": "12.10"}, True),
+    (LISTED_CLOUD.format("3.4"), {"cloud": "3.5"}, False),
+    (LISTED_CLOUD.format("3.50"), {"cloud": "3.5"}, False),
+    (LISTED_CLOUD.format("3.5 or 3.4"), {"cloud": "3.5"}, False),
+    (LISTED_CLOUD.format("3.5") + LISTED_CLOUD.format("3.5"), {"cloud": "3.5"}, False),
+    (LISTED_CLOUD.format("3.5"), {"cloud": "3.5", "app": "1.8"}, False),
+    (LISTED_CLOUD.format("3.5") + LISTED_APP, {"cloud": "3.5"}, False),
+    ("| [Cloud link](protocols/cloud/README.md) | 3.5 | A device | ADR |\n", {"cloud": "3.5"},
+     False),
+    ("", {"cloud": "3.5"}, False),
+)
+
+
+def check_listing() -> list[str]:
+    """Problems with the check of the root README's table: it must accept and refuse the
+    planted tables."""
+    return [
+        f"tools/check.py: {'refuses' if valid else 'accepts'} {readme!r} for {versions}"
+        for readme, versions, valid in PLANTED_LISTINGS
+        if bool(listed_versions(readme, versions)) == valid
+    ]
+
+
 def git(*args: str) -> str:
     return subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True, text=True,
                           encoding="utf-8", check=True).stdout
@@ -996,6 +1049,7 @@ def main() -> int:
     problems += check_reading()
     problems += check_holding()
     problems += check_naming()
+    problems += check_listing()
     problems += check_dispatch()
     schemas = {
         path.relative_to(ROOT).as_posix(): json.loads(path.read_text(encoding="utf-8"))
@@ -1007,6 +1061,7 @@ def main() -> int:
     problems += check_types(schemas)
     problems += check_bounds(schemas)
     problems += check_vectors(schemas)
+    versions: dict[str, str] = {}
     for folder in sorted(path for path in PROTOCOLS.iterdir() if path.is_dir()):
         name = folder.name
         schema = json.loads((folder / "schema.json").read_text(encoding="utf-8"))
@@ -1016,6 +1071,7 @@ def main() -> int:
             problems.append(f"{name}: the schema's title gives no version")
             continue
         major, minor = int(version[1]), int(version[2])
+        versions[name] = f"{major}.{minor}"
         readme = (folder / "README.md").read_text(encoding="utf-8")
         problems += [f"{name}/README.md: {problem}" for problem in
                      named_versions(readme, major, minor)]
@@ -1038,6 +1094,8 @@ def main() -> int:
                 problems += check_examples(f"{tag} {file}, against {major}.{minor}", data, schema)
         print(f"{name} {major}.{minor}: {listed} messages in its tables, {len(examples)} examples"
               + (f", and those of {previous[0]}" if previous else ""))
+    problems += [f"README.md: {problem}" for problem in
+                 listed_versions((ROOT / "README.md").read_text(encoding="utf-8"), versions)]
     for problem in problems:
         print("PROBLEM:", problem)
     return 1 if problems else 0

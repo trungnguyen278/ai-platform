@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "The app API, ai-app and ai-cloud, version 1.7",
+  "title": "The app API, ai-app and ai-cloud, version 1.8",
   "description": "Every request and response body of protocols/app/README.md. Validate the app's against #/$defs/from_app, the cloud's against #/$defs/from_cloud. The OAuth endpoints' form fields are written as a JSON object. Unknown fields are allowed, so that newer minor versions can add them.",
   "$defs": {
     "uuid": {
@@ -43,7 +43,8 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 8192,
-      "description": "An ID, access or refresh token: opaque to the app, except the ID token, which the provider made"
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "description": "An ID, access or refresh token: opaque to the app, except the ID token, which the provider made. Written in base64url and dots, as JWTs are (RFC 7519, 1; RFC 7515, 2 and 7.1), and as the cloud writes its refresh tokens"
     },
     "nonce": {
       "type": "string",
@@ -53,7 +54,9 @@
     "client_id": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 128
+      "maxLength": 128,
+      "pattern": "^[ -~]+$",
+      "description": "The app's identifier: printable ASCII, as OAuth's client_id (RFC 6749, A.1)"
     },
     "provider": {
       "type": "string",
@@ -68,7 +71,8 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 2048,
-      "description": "Sign in with Apple's authorization code, which comes with Apple's ID token only"
+      "pattern": "^[ -~]+$",
+      "description": "Sign in with Apple's authorization code, which comes with Apple's ID token only: printable ASCII, as OAuth's code (RFC 6749, A.11)"
     },
     "name": {
       "type": "string",
