@@ -64,6 +64,40 @@
       "result": "valid"
     },
     {
+      "id": "cloud-hello-resuming",
+      "comment": "A device's hello that resumes its session, with the last number it received.",
+      "protocol": "cloud",
+      "definition": "from_device",
+      "text": "{\"type\": \"hello\", \"protocol\": \"3.7\", \"device\": {\"kind\": \"robot\", \"model\": \"concept-v0\", \"software\": \"0.4.0\"}, \"time\": \"2026-10-28T03:20:45.100Z\", \"time_zone\": \"Asia/Ho_Chi_Minh\", \"languages\": [\"vi\", \"en\"], \"allowed_classes\": [\"informational\", \"privacy\"], \"conversations\": true, \"media\": [\"livekit\"], \"events\": [], \"resume\": {\"session\": \"01a18085-942c-78a0-9282-31c8cede2442\", \"received\": 37}}",
+      "result": "valid"
+    },
+    {
+      "id": "cloud-hello-resuming-without-received",
+      "comment": "A resume that names the session but not the last number received.",
+      "protocol": "cloud",
+      "definition": "from_device",
+      "text": "{\"type\": \"hello\", \"protocol\": \"3.7\", \"device\": {\"kind\": \"robot\", \"model\": \"concept-v0\", \"software\": \"0.4.0\"}, \"time\": \"2026-10-28T03:20:45.100Z\", \"time_zone\": \"Asia/Ho_Chi_Minh\", \"languages\": [\"vi\", \"en\"], \"allowed_classes\": [\"informational\", \"privacy\"], \"conversations\": true, \"media\": [\"livekit\"], \"events\": [], \"resume\": {\"session\": \"01a18085-942c-78a0-9282-31c8cede2442\"}}",
+      "result": "invalid",
+      "keyword": "required"
+    },
+    {
+      "id": "cloud-hello-resumed",
+      "comment": "The cloud's hello that resumes the session, with the last number it received.",
+      "protocol": "cloud",
+      "definition": "from_cloud",
+      "text": "{\"type\": \"hello\", \"protocol\": \"3.7\", \"session\": \"01a18085-942c-78a0-9282-31c8cede2442\", \"resumed\": true, \"received\": 41, \"time\": \"2026-10-28T03:20:45.180Z\", \"ping_interval\": 20, \"conversations\": true, \"events\": []}",
+      "result": "valid"
+    },
+    {
+      "id": "cloud-hello-resumed-without-received",
+      "comment": "A resumed hello without the last number received, which only a resumed one must give.",
+      "protocol": "cloud",
+      "definition": "from_cloud",
+      "text": "{\"type\": \"hello\", \"protocol\": \"3.7\", \"session\": \"01a18085-942c-78a0-9282-31c8cede2442\", \"resumed\": true, \"time\": \"2026-10-28T03:20:45.180Z\", \"ping_interval\": 20, \"conversations\": true, \"events\": []}",
+      "result": "invalid",
+      "keyword": "required"
+    },
+    {
       "id": "setup-configure",
       "comment": "Set-up's configure, as the examples have it.",
       "protocol": "setup",

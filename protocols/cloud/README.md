@@ -6,7 +6,7 @@ The device's core AI runs in the cloud. The device listens, plays, shows and act
 - the session: what the device is and can do, the cloud's calls, and the device's events;
 - conversations: opened on the session, with their audio in a LiveKit room of their own.
 
-Version **3.6**:
+Version **3.7**:
 - It builds on:
   - [ADR-0006](../../docs/decisions/0006-two-channels.md): a control channel always on, and media only to talk;
   - [ADR-0015](../../docs/decisions/0015-factory-reset.md): a device that leaves its home before its factory reset;
@@ -17,7 +17,8 @@ Version **3.6**:
 - [`schema.json`](schema.json) defines every message, in JSON Schema 2020-12, and [`examples/`](examples/) holds whole exchanges.
 
 **Version notes:**
-- **3.6** says how a session ends after a frame that breaks WebSocket's own rules, which its receiver fails with 1002, "protocol error" (RFC 6455, §7.4.1), before any `bye` can be sent: both sides end it, as after a 1007, a 1008 or a 1009, and the device connects again after the backoff, for a new session ([Validation](#messages)). Any other close, or a connection lost without one, leaves the session to resume, as before ([Resuming a session](#resuming-a-session)). A device of 3.5 that resumes instead gets a new session, and a cloud of 3.5 holds the ended session until `resume_window` passes, as after any loss, so nothing breaks.
+- **3.7** says what ends the older connection when a device resumes its session on a newer one, as it does while the cloud still holds the older: the cloud closes it with 4000, "taken over", and no `bye`, which would end the session being resumed. The device ends that connection only, and does not connect again because of it. A `hello` that gets a new session still ends the older connection with `bye` `replaced` ([Resuming a session](#resuming-a-session)). 3.7 also says what a resuming `hello` sets: the session keeps the terms its first `hello`s set, and a resume that changes them gets a new session ([`hello`](#hello)). A device of 3.6 reads 4000 as a loss, and resumes. It reads the code only on a connection it has not closed, and the robot closes its connection before it connects again, so the robot reads it only when two copies of its software share its credentials.
+- 3.6 says how a session ends after a frame that breaks WebSocket's own rules, which its receiver fails with 1002, "protocol error" (RFC 6455, §7.4.1), before any `bye` can be sent: both sides end it, as after a 1007, a 1008 or a 1009, and the device connects again after the backoff, for a new session ([Validation](#messages)). Any other close, or a connection lost without one, leaves the session to resume, as before ([Resuming a session](#resuming-a-session)). A device of 3.5 that resumes instead gets a new session, and a cloud of 3.5 holds the ended session until `resume_window` passes, as after any loss, so nothing breaks.
 - 3.5 says how a session ends after text that is not UTF-8, which RFC 6455 has the receiver refuse with 1007, before any `bye` can be sent: both sides end it, as after a 1009, and the device connects again after the backoff, for a new session ([Validation](#messages)). The cloud already does so. A device of 3.4 that resumes instead gets a new session ([Resuming a session](#resuming-a-session)), so nothing breaks.
 - 3.4 bounds the frames below the messages, which RFC 6455 leaves to each sender, and 3.3 left open with its "one message per text frame": a message comes in one frame, or in fragments of at least 1 KiB but its last, and WebSocket's Pings and unsolicited Pongs come at most once a second. Past them, a side may close the connection with 1008 ([Frames](#messages)). The rules hold below the hellos, whatever their version. The robot and the cloud send each message in one frame, and no Ping, so neither meets a change; a side that fragments more finely, or pings more often, may be closed by a side of 3.4.
 - 3.3 says what a first message that is not a `hello` gets: the session ends at once, with `bye` `no_hello`, as the cloud and the robot already do ([`hello`](#hello)). The rule applies before the hellos name a version, so a side that follows 3.3 keeps it whatever the other side's version. A side of 3.2 may still wait `hello_timeout`, and a side that sends its `hello` first meets no change.
@@ -137,7 +138,7 @@ Authorization: Bearer eyJhbGciOiJFUzI1NiIs...
   | 410 | The cloud no longer speaks this major version | Updates ([Update required](#update-required)) |
   | 429, 503 or any other | The device connects too often ([RFC 6585](https://www.rfc-editor.org/rfc/rfc6585), §4), or the cloud is busy or down | Connects again after the backoff, and no sooner than `Retry-After` if the answer has one, in seconds or as a date ([RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), §10.2.3) |
 
-- **One connection per device.** A new connection replaces the device's older one, which the cloud ends with `bye` `replaced`.
+- **One connection per device.** A new connection replaces the device's older one. When the cloud resumes the older one's session on the new one, it closes the older with 4000, "taken over", and no `bye` ([Resuming a session](#resuming-a-session)). Otherwise it ends the older one's session with `bye` `replaced`.
 
 ### Staying connected
 
@@ -161,13 +162,20 @@ A session outlives a short loss of its connection (SES-5), as a session of Disco
 - **Numbers.** Each side numbers the messages it sends in a session, `seq`, from 1. `hello`, `ping`, `pong`, `reconnect` and `bye` have no number: they open, keep and end the numbering. A number is a place in one session, not an identifier: outside the session it means nothing, and the session itself has a UUID ([ADR-0004](../../docs/decisions/0004-conventions.md), decision 1).
 - **Keeping what was sent.** Each side keeps the messages it sent until the other has received them, as the other's `received` says, and at most `replay` of them.
 - **Resuming.** A device whose connection was lost without a `bye` names its session in its next `hello`, with the last number it received: `"resume": {"session": "01a18085-…", "received": 41}`.
-  - If the cloud still holds the session, for `resume_window` seconds after the loss, and kept everything the device has not received, it answers with the same session, `"resumed": true`, and the last number it received from the device.
+  - If the cloud still holds the session, on an older connection or for `resume_window` seconds after the loss, as a session of the device that the connection's token names, under the same registration, and kept everything the device has not received, it answers with the same session, `"resumed": true`, and the last number it received from the device.
   - Each side then sends again, in order and with their numbers, what it sent after the other's `received`, and goes on from there.
   - A device that no longer holds what the cloud's `received` asks for ends the session with `bye` `resume_failed`, and connects again for a new one.
 - **A new session.** Otherwise the cloud answers with a new session and `"resumed": false`. Numbers start again from 1, and what was in flight is lost: a call gets no result, and its caller's time limit applies. The cloud discovers the device's capabilities again.
+- **Taken over.** A device mostly resumes before the cloud sees the loss: it closes after one interval without a `pong`, and the cloud after two intervals with nothing ([Staying connected](#staying-connected)).
+  - **The cloud** that resumes a session held by an older connection closes that one with 4000, "taken over", and no `bye`, which would end the session. It handles nothing more that comes on the older connection, and only then answers the `hello`, so that its `received` counts all it handled. What the older connection carried past it, the device sends again.
+  - **A device that reads 4000** ends that connection, and not its session, which goes on on the connection that took it over. It reads the code only on a connection it has not closed, and after a loss it closes its connection before it connects again. It does not connect again because of the close, as it would after a loss:
+    - with a newer connection of its own, opened while the older was still open, such as after `reconnect`, it keeps to that one;
+    - with none, another copy of its software, with its credentials, took the session over, and the device does what it does after `bye` `replaced`. Resuming at once would take the session back, and the two would take it from each other in turn.
+  - **The code** is the link's first of WebSocket's private ones, 4000 to 4999, which applications agree on between them ([RFC 6455](https://www.rfc-editor.org/rfc/rfc6455), §7.4.2). It is numbered from 4000, as Discord's gateway and Twitch's EventSub number theirs ([Discord](https://docs.discord.com/developers/events/gateway), [Twitch](https://dev.twitch.tv/docs/eventsub/handling-websocket-events/)).
+  - MQTT 5 does the same: when a client connects again, its server sends the older connection a DISCONNECT, "Session taken over", 0x8E, and closes it, and a newer connection with Clean Start 0 resumes the session ([MQTT 5.0](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html), §3.1.4 and §3.1.2.4). Its DISCONNECT ends a connection, where the link's `bye` ends a session, so the link keeps `bye` `replaced` for a newer connection with a new session. Twitch closes with its 4004 an old connection that its client left open beside the new one.
 - **Duplicates** (SES-6). A message whose number is not above the last one handled from that side is a duplicate, and is ignored. A message that skips a number ends the session with `bye` `out_of_sequence`.
 - **A `bye` ends a session for good:** nothing resumes it.
-- **So does a close with 1002, 1007, 1008 or 1009,** on both sides, since what made it would come again on a resumed session ([Validation, Sizes and Frames](#messages)). Any other close, or a connection lost without one, leaves the session to resume.
+- **So does a close with 1002, 1007, 1008 or 1009,** on both sides, since what made it would come again on a resumed session ([Validation, Sizes and Frames](#messages)). Any other close, or a connection lost without one, leaves the session to resume, but for 4000, after which it goes on on the connection that took it over.
 
 ## Messages
 
@@ -251,7 +259,7 @@ The device speaks first, as soon as the connection is open, and the cloud sends 
 | `allowed_classes` | The safety classes its owner allows (SEC-8, SEC-9) |
 | `conversations` | Whether it holds conversations: it streams what it hears, and plays the cloud's voice |
 | `media` | The media it can use for conversations: `livekit` |
-| `events` | The events it can send, each with a JSON Schema of its `data` (EXT-6). Events declared after the `hello` take effect at the next session. |
+| `events` | The events it can send, each with a JSON Schema of its `data` (EXT-6). Events declared after the `hello` take effect at the next session, not at a resume. |
 | `resume` | Only to resume: the session, and the last number received from the cloud |
 | `conversation` | Only while the device is in a conversation: which one |
 
@@ -265,7 +273,7 @@ The cloud answers:
 
 | Field | Meaning |
 |---|---|
-| `protocol` | The session's version: the major, and the lower of the two minors |
+| `protocol` | The session's version: the major, and the lower of the two minors. A resumed session keeps its version. |
 | `session` | The session's identifier, so that logs on both sides can be matched (OPS-3) |
 | `resumed` | Whether the session goes on from before |
 | `received` | Only when resumed: the last number received from the device |
@@ -274,6 +282,11 @@ The cloud answers:
 | `conversations` | Whether the cloud holds conversations with the device. The session has conversations only if both sides say so. |
 | `events` | The events the cloud subscribes to. The device sends only those, and only declared ones. |
 
+- **A resuming `hello`** keeps the terms that the session's first `hello`s set: its version, the device's `device`, `conversations`, `media` and `events`, and the cloud's `conversations` and `events` ([Resuming a session](#resuming-a-session)).
+  - **The device** sends them as it sent them then, but for its `events`, which the cloud does not read from a resuming `hello`: events declared since wait for a new session.
+  - **A changed term:** a resuming `hello` whose `protocol`, `device`, `conversations` or `media` differ from those of the device's first `hello` in the session gets a new session. So does a resume on a cloud that no longer speaks the session's version. What each side kept was sent under those terms.
+  - **The cloud** gives the session's version, `conversations` and `events` again in its resumed `hello`. It changes its subscription only in a new session: what the device sends again was sent under the old one, and leaving out a message would skip a number. Discord's gateway resumes with a token, the session and its sequence number, and none of the terms that its Identify sets, and Twitch's EventSub keeps a connection's subscriptions on the new one ([Discord](https://docs.discord.com/developers/events/gateway), [Twitch](https://dev.twitch.tv/docs/eventsub/handling-websocket-events/)).
+  - **The other fields** apply as in any `hello`: the clocks, the cloud's `ping_interval`, the device's `conversation`, and its `time_zone`, `languages` and `allowed_classes`, which replace the session's as a `device.changed` does.
 - **No answer.** Each side waits `hello_timeout` for the other's `hello`. Past it, it sends `bye` `no_hello` and closes the connection.
 - **Another message first.** Each side's first message is its `hello`, or a `bye` that ends the session before it. A first message of another type that a side can answer ([Validation](#messages)) ends the session at once with `bye` `no_hello`, without waiting for `hello_timeout`, and gets no `error`, even when it fails `schema.json`: no session holds it yet, with a version to read it by and numbers to go on from. Since 3.3.
   - MQTT 5 does the same: a client's first packet must be CONNECT, and a server closes the connection on a protocol error ([MQTT 5.0](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html), §3.1 and §4.13.1). The GraphQL over WebSocket protocol closes at once on an operation before its connection is acknowledged ([`PROTOCOL.md`](https://github.com/enisdenjo/graphql-ws/blob/master/PROTOCOL.md), `4401`). Both read 2026-11-20.
@@ -321,7 +334,7 @@ Before ending a session on purpose, a side sends `bye` (SES-7), then closes the 
 | Reason | From | Then |
 |---|---|---|
 | `stopping`, `restarting`, `updating` | device | The device stops, restarts or installs an update |
-| `replaced` | cloud | A newer connection of the device took over. The device keeps to that one. |
+| `replaced` | cloud | A newer connection of the device took over, with a new session. The device keeps to that one. A newer connection that resumes the session closes the older with 4000 instead ([Resuming a session](#resuming-a-session)). |
 | `revoked` | cloud | The device is no longer registered. It forgets its session and offers set-up (PROV-3). |
 | `left` | cloud | The device left its home, as its `leave` asked, and is no longer registered ([`leave`](#leave)). Since 3.2. |
 | `update_required` | cloud | The device needs an update ([Update required](#update-required)) |
@@ -552,7 +565,7 @@ How this version meets the [requirements](requirements.md#9-security):
 - **SEC-1:** TLS on all three connections: the token endpoint, the control channel and the room. No redirects. Plain HTTP and WebSocket only to the device itself, for development.
 - **SEC-2 to SEC-4:** each connection opens with a short-lived token, bought with an assertion that the device's key signs. Revoking a device refuses its assertions (`invalid_client`), and ends its session (`bye` `revoked`). A device also revokes itself, at its owner's request on the device, with `leave`, which only its own session can send (SEC-6).
 - **SEC-5:** neither side logs an assertion, an access token or a room's token.
-- **SEC-6:** the cloud ties a connection to the device its token names, and confines it to that device's data.
+- **SEC-6:** the cloud ties a connection to the device its token names, and confines it to that device's data: it resumes, and takes over from an older connection, only a session of that device, under the same registration.
 - **SEC-7 to SEC-9:** the device checks every call against its catalogue, and enforces the safety classes itself. The cloud learns which classes are allowed, and never sets them. In the room, the device takes messages and audio from agents only.
 - **SEC-12, SES-6:** assertions are single-use (`jti`), and messages are numbered within a session, so that a duplicate has no effect. TLS keeps others from replaying them.
 - **SEC-14, SEC-15:** both sides validate every message, and bound sizes, depth and rates.
@@ -600,3 +613,6 @@ The names in `code` in this document are settings, of the device or of the cloud
 - Retrieved 2026-11-22, for the frames:
   - ESP-IDF's [`esp_websocket_client`](https://github.com/espressif/esp-protocols/blob/master/components/esp_websocket_client/esp_websocket_client.c) 1.8.0 (its `buffer_size`, its fragments and its Pings), [libwebsockets](https://github.com/warmcat/libwebsockets/blob/main/include/libwebsockets/lws-write.h), [OkHttp](https://github.com/square/okhttp/blob/master/okhttp/src/commonJvmAndroid/kotlin/okhttp3/internal/ws/RealWebSocket.kt), [Chromium](https://source.chromium.org/chromium/chromium/src/+/main:services/network/websocket.cc), [Firefox](https://github.com/mozilla-firefox/firefox/blob/main/netwerk/protocol/websocket/WebSocketChannel.cpp) and [cloudflared](https://github.com/cloudflare/cloudflared/blob/master/proxy/proxy.go), in their source;
   - the floods: [Netflix's advisory 2019-002](https://github.com/Netflix/security-bulletins/blob/master/advisories/third-party/2019-002.md), [Envoy's HTTP/2 options](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/core/v3/protocol.proto), [nginx's HTTP/2](https://github.com/nginx/nginx/blob/master/src/http/v2/ngx_http_v2.c) and [gRPC's keepalive](https://github.com/grpc/grpc/blob/master/doc/keepalive.md).
+- Retrieved 2026-11-24, for a session taken over:
+  - [MQTT 5.0](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html) (§3.1.4, "Session taken over" on the older connection, and §3.1.2.4, Clean Start);
+  - Twitch: [EventSub over WebSockets](https://dev.twitch.tv/docs/eventsub/handling-websocket-events/) (its close codes from 4000, and its reconnect, which keeps the subscriptions).

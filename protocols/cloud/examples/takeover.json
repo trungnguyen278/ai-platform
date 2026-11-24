@@ -1,0 +1,75 @@
+{
+  "description": "A session resumed on a new connection while the cloud still held the older one, which it closes with 4000 and no bye; then a device that restarted, whose new session ends the older connection's with bye replaced. A note tells what happens to the connections; it is not a message.",
+  "messages": [
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.7",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:20:00.250Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi"], "allowed_classes": ["informational"],
+      "conversations": false, "media": [], "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.7", "session": "01a18085-942c-78a0-9282-31c8cede2442",
+      "resumed": false, "time": "2026-10-28T03:20:00.310Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }},
+    {"from": "cloud", "message": {
+      "type": "mcp", "seq": 1,
+      "payload": {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {
+        "_meta": {"io.modelcontextprotocol/protocolVersion": "2026-07-28", "io.modelcontextprotocol/clientCapabilities": {}},
+        "name": "screen.show_expression", "arguments": {"expression": "happy"}
+      }}
+    }},
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 1, "reply_to": 1,
+      "payload": {"jsonrpc": "2.0", "id": 1, "result": {
+        "resultType": "complete",
+        "content": [{"type": "text", "text": "{\"showing\": \"happy\"}"}],
+        "structuredContent": {"showing": "happy"},
+        "isError": false
+      }}
+    }},
+    {"note": "The device's Wi-Fi drops with its message 1 on the way. No pong comes by its next ping, so the device closes the connection on its side, gets a new token and connects again. The cloud has not seen the loss: it has had nothing from the older connection for less than two intervals."},
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.7",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:20:45.100Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi"], "allowed_classes": ["informational"],
+      "conversations": false, "media": [], "events": [],
+      "resume": {"session": "01a18085-942c-78a0-9282-31c8cede2442", "received": 1}
+    }},
+    {"note": "The cloud still holds the session on the older connection. It closes that one with 4000, \"taken over\", and no bye, and handles nothing more from it. Then it answers, with the session's version, conversations and events."},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.7", "session": "01a18085-942c-78a0-9282-31c8cede2442",
+      "resumed": true, "received": 0, "time": "2026-10-28T03:20:45.180Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }},
+    {"note": "The device sends again what it sent after the cloud's received: its message 1."},
+    {"from": "device", "message": {
+      "type": "mcp", "seq": 1, "reply_to": 1,
+      "payload": {"jsonrpc": "2.0", "id": 1, "result": {
+        "resultType": "complete",
+        "content": [{"type": "text", "text": "{\"showing\": \"happy\"}"}],
+        "structuredContent": {"showing": "happy"},
+        "isError": false
+      }}
+    }},
+    {"from": "device", "message": {"type": "ping", "received": 1}},
+    {"from": "cloud", "message": {"type": "pong", "received": 1}},
+    {"note": "The device loses power and starts again, with nothing of its session. Its hello on a new connection names no session to resume."},
+    {"from": "device", "message": {
+      "type": "hello", "protocol": "3.7",
+      "device": {"kind": "robot", "model": "concept-v0", "software": "0.4.0"},
+      "time": "2026-10-28T03:40:10.020Z", "time_zone": "Asia/Ho_Chi_Minh",
+      "languages": ["vi"], "allowed_classes": ["informational"],
+      "conversations": false, "media": [], "events": []
+    }},
+    {"note": "The cloud still holds the older connection. It ends that one's session, closes it, and answers the new one with a new session."},
+    {"from": "cloud", "message": {"type": "bye", "reason": "replaced"}},
+    {"from": "cloud", "message": {
+      "type": "hello", "protocol": "3.7", "session": "01a1809e-1b2c-7d3e-8f40-5a6b7c8d9e0f",
+      "resumed": false, "time": "2026-10-28T03:40:10.090Z", "ping_interval": 20,
+      "conversations": false, "events": []
+    }}
+  ]
+}
