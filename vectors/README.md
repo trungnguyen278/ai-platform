@@ -12,7 +12,7 @@ They follow prior art: [JSONTestSuite](https://github.com/nst/JSONTestSuite)'s p
   - numbers past a double, taken in one spelling and refused in another;
   - nesting just past 64, and far past it, which a recursive reader cannot reach;
   - 1 MiB texts, which a reader that takes quadratic time cannot finish.
-- [`validating.json`](validating.json): messages for a side's schema validation, with 1 MiB arrays of objects that a quadratic `uniqueItems` cannot finish, and the app API's changes with their `etag`, which only `dependentSchemas` keeps from coming alone, and its OAuth forms, whose tokens, app's identifier, Apple's code and revocation hint keep to the characters that bound a form in bytes, and whose hint the cloud ignores when it does not know it (since 1.9).
+- [`validating.json`](validating.json): messages for a side's schema validation, with 1 MiB arrays of objects that a quadratic `uniqueItems` cannot finish, and the app API's changes with their `etag`, which only `dependentSchemas` keeps from coming alone, and its OAuth forms, whose tokens, app's identifier, Apple's code and revocation hint keep to the characters that bound a form in bytes, and whose hint the cloud ignores when it does not know it (since 1.9), and the cloud link's hellos that resume a session, each with the last number its side received, which the cloud's must give only when resumed: an `if` and its `then` ask it.
 - [`schema.json`](schema.json): the format of both files, in JSON Schema (draft 2020-12).
 
 `tools/check.py` checks them:
